@@ -1,3 +1,4 @@
+
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -16,7 +17,6 @@ import {
   DrawerContent,
   DrawerHeader,
   DrawerTitle,
-  DrawerTrigger,
 } from "@/components/ui/drawer";
 import { authService } from "@/services/authService";
 import { useToast } from "@/hooks/use-toast";
@@ -53,7 +53,7 @@ const TravelAdEditor = () => {
 
   const saveToHistory = (data: any) => {
     const newHistory = history.slice(0, historyIndex + 1);
-    newHistory.push(data);
+    newHistory.push({ ...data, timestamp: Date.now() });
     setHistory(newHistory);
     setHistoryIndex(newHistory.length - 1);
     
@@ -64,12 +64,15 @@ const TravelAdEditor = () => {
     if (historyIndex > 0) {
       const newIndex = historyIndex - 1;
       setHistoryIndex(newIndex);
-      setDesignData(history[newIndex]);
+      const historyData = history[newIndex];
+      setDesignData(historyData);
+      setSelectedTemplate(historyData.template || 0);
+      
       toast({
         title: "تم التراجع",
         description: "تم التراجع عن آخر تغيير",
       });
-      console.log('Undo to:', history[newIndex]);
+      console.log('Undo to:', historyData);
     }
   };
 
@@ -77,18 +80,20 @@ const TravelAdEditor = () => {
     if (historyIndex < history.length - 1) {
       const newIndex = historyIndex + 1;
       setHistoryIndex(newIndex);
-      setDesignData(history[newIndex]);
+      const historyData = history[newIndex];
+      setDesignData(historyData);
+      setSelectedTemplate(historyData.template || 0);
+      
       toast({
         title: "تم الإعادة",
         description: "تم إعادة التغيير",
       });
-      console.log('Redo to:', history[newIndex]);
+      console.log('Redo to:', historyData);
     }
   };
 
   const handleSave = async () => {
     try {
-      // Determine project type based on template category
       const templateCategory = templates[selectedTemplate]?.category || 'travel';
       let projectType: 'travel' | 'social' | 'logo' | 'cv' = 'travel';
       
@@ -146,10 +151,10 @@ const TravelAdEditor = () => {
     
     const newData = { 
       template: templateIndex,
-      elements: [], // Clear elements when changing template
+      elements: [],
       colors: {},
       fonts: {},
-      images: designData.images || [] // Keep uploaded images
+      images: designData.images || []
     };
     
     setSelectedTemplate(templateIndex);
@@ -163,7 +168,6 @@ const TravelAdEditor = () => {
       description: `تم اختيار قالب: ${templates[templateIndex]?.name}`,
     });
 
-    // إغلاق الدرج بعد تغيير القالب
     setIsDrawerOpen(false);
   };
 
@@ -185,11 +189,12 @@ const TravelAdEditor = () => {
 
   const handleDesignChange = (newDesignData: any) => {
     console.log('Design change received:', newDesignData);
-    setDesignData({
+    const updatedData = {
       ...newDesignData,
-      template: selectedTemplate // Ensure template is preserved
-    });
-    saveToHistory(newDesignData);
+      template: selectedTemplate
+    };
+    setDesignData(updatedData);
+    saveToHistory(updatedData);
   };
 
   const openDrawer = (content: 'templates' | 'tools' | 'properties' | 'layers') => {
@@ -215,8 +220,16 @@ const TravelAdEditor = () => {
       case 'layers':
         return <LayersPanel />;
       default:
-        return null;
+        return <div className="p-4 text-center text-gray-500">المحتوى غير متوفر</div>;
     }
+  };
+
+  const togglePreviewMode = () => {
+    setIsPreviewMode(!isPreviewMode);
+    toast({
+      title: isPreviewMode ? "وضع التحرير" : "وضع المعاينة",
+      description: isPreviewMode ? "يمكنك الآن تحرير التصميم" : "يتم عرض التصميم للمعاينة فقط",
+    });
   };
 
   return (
@@ -242,6 +255,7 @@ const TravelAdEditor = () => {
               size="sm" 
               onClick={handleUndo}
               disabled={historyIndex <= 0}
+              title="تراجع"
             >
               <Undo className="w-4 h-4" />
             </Button>
@@ -250,6 +264,7 @@ const TravelAdEditor = () => {
               size="sm" 
               onClick={handleRedo}
               disabled={historyIndex >= history.length - 1}
+              title="إعادة"
             >
               <Redo className="w-4 h-4" />
             </Button>
@@ -263,7 +278,7 @@ const TravelAdEditor = () => {
                 </Button>
               }
             />
-            <Button variant="outline" size="sm" onClick={() => setIsPreviewMode(!isPreviewMode)}>
+            <Button variant="outline" size="sm" onClick={togglePreviewMode}>
               <Eye className="w-4 h-4 ml-2" />
               {isPreviewMode ? "تحرير" : "معاينة"}
             </Button>
@@ -289,6 +304,7 @@ const TravelAdEditor = () => {
               size="sm" 
               onClick={handleUndo}
               disabled={historyIndex <= 0}
+              title="تراجع"
             >
               <Undo className="w-4 h-4" />
             </Button>
@@ -297,49 +313,13 @@ const TravelAdEditor = () => {
               size="sm" 
               onClick={handleRedo}
               disabled={historyIndex >= history.length - 1}
+              title="إعادة"
             >
               <Redo className="w-4 h-4" />
             </Button>
-            <Drawer>
-              <DrawerTrigger asChild>
-                <Button variant="outline" size="sm">
-                  المزيد
-                </Button>
-              </DrawerTrigger>
-              <DrawerContent>
-                <DrawerHeader>
-                  <DrawerTitle>خيارات التصميم</DrawerTitle>
-                </DrawerHeader>
-                <div className="p-4 space-y-3">
-                  <ImageUpload 
-                    onImageSelect={handleImageSelect}
-                    trigger={
-                      <Button variant="outline" className="w-full justify-start">
-                        <ImageIcon className="w-4 h-4 ml-2" />
-                        إضافة صورة
-                      </Button>
-                    }
-                  />
-                  <Button variant="outline" className="w-full justify-start" onClick={() => setIsPreviewMode(!isPreviewMode)}>
-                    <Eye className="w-4 h-4 ml-2" />
-                    {isPreviewMode ? "تحرير" : "معاينة"}
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start" onClick={handleSave}>
-                    <Save className="w-4 h-4 ml-2" />
-                    حفظ المشروع
-                  </Button>
-                  <ExportModal 
-                    canvasRef={canvasRef}
-                    trigger={
-                      <Button className="w-full justify-start bg-gradient-to-r from-blue-600 to-purple-600">
-                        <Download className="w-4 h-4 ml-2" />
-                        تصدير التصميم
-                      </Button>
-                    }
-                  />
-                </div>
-              </DrawerContent>
-            </Drawer>
+            <Button variant="outline" size="sm" onClick={togglePreviewMode}>
+              <Eye className="w-4 h-4" />
+            </Button>
           </div>
         </div>
       </header>
@@ -386,7 +366,7 @@ const TravelAdEditor = () => {
         </div>
 
         {/* Main Canvas Area */}
-        <div className="flex-1 flex flex-col bg-gray-100 pb-16 lg:pb-0">
+        <div className="flex-1 flex flex-col bg-gray-100 pb-20 lg:pb-0">
           <DesignCanvas 
             ref={canvasRef}
             selectedTemplate={selectedTemplate}
@@ -397,9 +377,9 @@ const TravelAdEditor = () => {
           />
         </div>
 
-        {/* Mobile Bottom Panel - تحديث مهم هنا */}
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
-          <div className="flex justify-around py-2">
+        {/* Mobile Bottom Panel - تحسين مهم */}
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 shadow-lg">
+          <div className="grid grid-cols-4 h-16">
             {[
               { id: 'templates', label: 'القوالب', icon: '🎨' },
               { id: 'tools', label: 'الأدوات', icon: '🛠️' },
@@ -408,29 +388,35 @@ const TravelAdEditor = () => {
             ].map((tab) => (
               <button 
                 key={tab.id}
-                className="flex flex-col items-center py-2 px-3 text-xs text-gray-600 hover:text-gray-900 transition-colors active:bg-gray-100 touch-manipulation"
-                onClick={() => openDrawer(tab.id as any)}
-                style={{ minHeight: '60px', WebkitTapHighlightColor: 'rgba(0,0,0,0.1)' }}
+                className="flex flex-col items-center justify-center py-2 px-1 text-xs text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-colors active:bg-blue-100 touch-manipulation"
+                onClick={() => {
+                  console.log('Bottom tab clicked:', tab.id);
+                  openDrawer(tab.id as any);
+                }}
+                style={{ 
+                  WebkitTapHighlightColor: 'transparent',
+                  userSelect: 'none'
+                }}
               >
-                <span className="text-lg mb-1">{tab.icon}</span>
-                <span className="text-center">{tab.label}</span>
+                <span className="text-lg mb-1 pointer-events-none">{tab.icon}</span>
+                <span className="text-center leading-tight pointer-events-none">{tab.label}</span>
               </button>
             ))}
           </div>
         </div>
 
-        {/* Drawer للهاتف المحمول */}
+        {/* Drawer للهاتف المحمول - تحسين */}
         <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
-          <DrawerContent className="max-h-[80vh]">
-            <DrawerHeader>
-              <DrawerTitle>
-                {currentDrawerContent === 'templates' && 'القوالب'}
-                {currentDrawerContent === 'tools' && 'الأدوات'}
-                {currentDrawerContent === 'properties' && 'الخصائص'}
-                {currentDrawerContent === 'layers' && 'الطبقات'}
+          <DrawerContent className="max-h-[80vh] bg-white">
+            <DrawerHeader className="border-b border-gray-200">
+              <DrawerTitle className="text-right">
+                {currentDrawerContent === 'templates' && 'القوالب المتاحة'}
+                {currentDrawerContent === 'tools' && 'أدوات التصميم'}
+                {currentDrawerContent === 'properties' && 'خصائص العنصر'}
+                {currentDrawerContent === 'layers' && 'طبقات التصميم'}
               </DrawerTitle>
             </DrawerHeader>
-            <div className="overflow-y-auto flex-1">
+            <div className="overflow-y-auto flex-1 bg-white">
               {renderDrawerContent()}
             </div>
           </DrawerContent>

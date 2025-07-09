@@ -41,12 +41,28 @@ export const DesignCanvas = forwardRef<HTMLDivElement, DesignCanvasProps>(
     const [elements, setElements] = useState<DesignElement[]>([]);
     const [selectedElement, setSelectedElement] = useState<string | null>(null);
 
-    const handleZoomIn = () => setZoom(prev => Math.min(prev + 25, 200));
-    const handleZoomOut = () => setZoom(prev => Math.max(prev - 25, 25));
-    const handleRotate = () => setRotation(prev => (prev + 90) % 360);
+    const handleZoomIn = () => {
+      const newZoom = Math.min(zoom + 25, 200);
+      setZoom(newZoom);
+      console.log('Zoom in to:', newZoom);
+    };
+
+    const handleZoomOut = () => {
+      const newZoom = Math.max(zoom - 25, 25);
+      setZoom(newZoom);
+      console.log('Zoom out to:', newZoom);
+    };
+
+    const handleRotate = () => {
+      const newRotation = (rotation + 90) % 360;
+      setRotation(newRotation);
+      console.log('Canvas rotated to:', newRotation);
+    };
+
     const handleFit = () => {
       setZoom(100);
       setRotation(0);
+      console.log('Canvas reset to fit');
     };
 
     const getCategoryIcon = (category: string) => {
@@ -133,16 +149,18 @@ export const DesignCanvas = forwardRef<HTMLDivElement, DesignCanvasProps>(
       if (isPreviewMode) return;
       
       const rect = e.currentTarget.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
+      const x = (e.clientX - rect.left) / (zoom / 100);
+      const y = (e.clientY - rect.top) / (zoom / 100);
       
-      // Deselect element if clicking on empty space
+      // إلغاء تحديد العنصر عند النقر على مساحة فارغة
       setSelectedElement(null);
       
-      console.log('Canvas clicked at:', { x, y });
+      console.log('Canvas clicked at:', { x, y, zoom });
     };
 
     const addTextElement = useCallback(() => {
+      if (isPreviewMode) return;
+      
       const newElement: DesignElement = {
         id: `text-${Date.now()}`,
         type: 'text',
@@ -152,7 +170,7 @@ export const DesignCanvas = forwardRef<HTMLDivElement, DesignCanvasProps>(
         width: 200,
         height: 40,
         rotation: 0,
-        fontSize: 16,
+        fontSize: 18,
         color: '#ffffff'
       };
       
@@ -162,7 +180,7 @@ export const DesignCanvas = forwardRef<HTMLDivElement, DesignCanvasProps>(
       
       console.log('Added text element:', newElement);
       
-      // Update parent component
+      // تحديث البيانات
       if (onDesignChange) {
         onDesignChange({
           ...designData,
@@ -170,9 +188,11 @@ export const DesignCanvas = forwardRef<HTMLDivElement, DesignCanvasProps>(
           template: selectedTemplate
         });
       }
-    }, [elements, designData, onDesignChange, selectedTemplate]);
+    }, [elements, designData, onDesignChange, selectedTemplate, isPreviewMode]);
 
     const addImageElement = useCallback((imageUrl: string) => {
+      if (isPreviewMode) return;
+      
       const newElement: DesignElement = {
         id: `image-${Date.now()}`,
         type: 'image',
@@ -190,7 +210,7 @@ export const DesignCanvas = forwardRef<HTMLDivElement, DesignCanvasProps>(
       
       console.log('Added image element:', newElement);
       
-      // Update parent component
+      // تحديث البيانات
       if (onDesignChange) {
         onDesignChange({
           ...designData,
@@ -198,7 +218,7 @@ export const DesignCanvas = forwardRef<HTMLDivElement, DesignCanvasProps>(
           template: selectedTemplate
         });
       }
-    }, [elements, designData, onDesignChange, selectedTemplate]);
+    }, [elements, designData, onDesignChange, selectedTemplate, isPreviewMode]);
 
     const updateElement = useCallback((id: string, updates: Partial<DesignElement>) => {
       const updatedElements = elements.map(el => 
@@ -208,7 +228,7 @@ export const DesignCanvas = forwardRef<HTMLDivElement, DesignCanvasProps>(
       
       console.log('Updated element:', id, updates);
       
-      // Update parent component
+      // تحديث البيانات
       if (onDesignChange) {
         onDesignChange({
           ...designData,
@@ -225,7 +245,7 @@ export const DesignCanvas = forwardRef<HTMLDivElement, DesignCanvasProps>(
       
       console.log('Deleted element:', id);
       
-      // Update parent component
+      // تحديث البيانات
       if (onDesignChange) {
         onDesignChange({
           ...designData,
@@ -235,7 +255,7 @@ export const DesignCanvas = forwardRef<HTMLDivElement, DesignCanvasProps>(
       }
     }, [elements, designData, onDesignChange, selectedTemplate]);
 
-    // Load elements from designData when it changes
+    // تحميل العناصر من البيانات
     useEffect(() => {
       if (designData?.elements && Array.isArray(designData.elements)) {
         console.log('Loading elements from designData:', designData.elements);
@@ -243,14 +263,16 @@ export const DesignCanvas = forwardRef<HTMLDivElement, DesignCanvasProps>(
       }
     }, [designData?.elements]);
 
-    // Reset elements when template changes
+    // إعادة تعيين العناصر عند تغيير القالب
     useEffect(() => {
       console.log('Template changed to:', selectedTemplate, templates[selectedTemplate]);
       setElements([]);
       setSelectedElement(null);
+      setZoom(100);
+      setRotation(0);
     }, [selectedTemplate]);
 
-    // Load uploaded images as elements
+    // تحميل الصور المرفوعة كعناصر
     useEffect(() => {
       if (designData?.images && Array.isArray(designData.images)) {
         const imageElements = designData.images.map((image: any, index: number) => ({
@@ -286,71 +308,80 @@ export const DesignCanvas = forwardRef<HTMLDivElement, DesignCanvasProps>(
           <div className="flex items-center space-x-3">
             <span className="text-sm text-gray-600">التكبير: {zoom}%</span>
             <div className="flex items-center space-x-1">
-              <Button variant="ghost" size="sm" onClick={handleZoomOut}>
+              <Button variant="ghost" size="sm" onClick={handleZoomOut} title="تصغير">
                 <ZoomOut className="w-4 h-4" />
               </Button>
-              <Button variant="ghost" size="sm" onClick={handleZoomIn}>
+              <Button variant="ghost" size="sm" onClick={handleZoomIn} title="تكبير">
                 <ZoomIn className="w-4 h-4" />
               </Button>
-              <Button variant="ghost" size="sm" onClick={handleRotate}>
+              <Button variant="ghost" size="sm" onClick={handleRotate} title="تدوير">
                 <RotateCcw className="w-4 h-4" />
               </Button>
-              <Button variant="ghost" size="sm" onClick={handleFit}>
+              <Button variant="ghost" size="sm" onClick={handleFit} title="ملاءمة">
                 <Maximize className="w-4 h-4" />
               </Button>
             </div>
           </div>
           
           <div className="hidden sm:flex items-center space-x-2">
-            <span className="text-sm text-gray-500">أبعاد: 1080×1080</span>
+            <span className="text-sm text-gray-500">أبعاد: 600×600</span>
             <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-            <span className="text-sm text-green-600">محفوظ</span>
+            <span className="text-sm text-green-600">جاهز</span>
           </div>
         </div>
 
         {/* Canvas Area */}
-        <div className="flex-1 overflow-auto p-4 lg:p-8">
+        <div className="flex-1 overflow-auto p-4 lg:p-8 bg-gray-100">
           <div className="flex justify-center">
             <div className="relative">
-              <Card className="shadow-2xl overflow-hidden" style={{ transform: `scale(${zoom / 100}) rotate(${rotation}deg)` }}>
+              <Card 
+                className="shadow-2xl overflow-hidden border-2 border-gray-300" 
+                style={{ 
+                  transform: `scale(${zoom / 100}) rotate(${rotation}deg)`,
+                  transformOrigin: 'center center'
+                }}
+              >
                 <CardContent className="p-0">
                   <div 
                     ref={ref}
-                    className={`w-[350px] h-[350px] sm:w-[500px] sm:h-[500px] lg:w-[600px] lg:h-[600px] bg-gradient-to-br ${currentTemplate?.color || 'from-green-500 to-emerald-600'} relative overflow-hidden transition-all hover:shadow-xl ${!isPreviewMode ? 'cursor-crosshair' : 'cursor-default'}`}
+                    className={`w-[600px] h-[600px] bg-gradient-to-br ${currentTemplate?.color || 'from-green-500 to-emerald-600'} relative overflow-hidden transition-all duration-300 ${!isPreviewMode ? 'cursor-crosshair' : 'cursor-default'}`}
                     onClick={handleCanvasClick}
+                    style={{
+                      touchAction: 'manipulation'
+                    }}
                   >
                     {/* Background Pattern */}
-                    <div className="absolute inset-0 opacity-10">
-                      <div className="absolute top-4 right-4 text-4xl sm:text-6xl lg:text-8xl">
+                    <div className="absolute inset-0 opacity-10 pointer-events-none">
+                      <div className="absolute top-8 right-8 text-8xl">
                         {getCategoryIcon(currentTemplate?.category)}
                       </div>
-                      <div className="absolute bottom-4 left-4 text-2xl sm:text-4xl lg:text-6xl opacity-50">
+                      <div className="absolute bottom-8 left-8 text-6xl opacity-50">
                         {getCategoryIcon(currentTemplate?.category)}
                       </div>
                     </div>
 
                     {/* Template Content */}
-                    <div className="absolute inset-0 flex flex-col justify-between p-4 sm:p-6 lg:p-8 text-white">
+                    <div className="absolute inset-0 flex flex-col justify-between p-8 text-white pointer-events-none">
                       {/* Header */}
                       <div className="text-center">
-                        <h1 className="text-xl sm:text-3xl lg:text-4xl font-bold mb-2 leading-tight">
+                        <h1 className="text-4xl font-bold mb-4 leading-tight">
                           {templateContent.title}
                         </h1>
-                        <p className="text-sm sm:text-lg lg:text-xl opacity-90">
+                        <p className="text-xl opacity-90">
                           {templateContent.subtitle}
                         </p>
                       </div>
                       
                       {/* Center Content */}
                       <div className="text-center">
-                        <div className="bg-white/20 backdrop-blur-sm rounded-xl p-3 sm:p-4 lg:p-6 inline-block">
-                          <div className="text-3xl sm:text-5xl lg:text-6xl mb-2">
+                        <div className="bg-white/20 backdrop-blur-sm rounded-xl p-6 inline-block">
+                          <div className="text-6xl mb-4">
                             {getCategoryIcon(currentTemplate?.category)}
                           </div>
-                          <h3 className="text-lg sm:text-xl lg:text-2xl font-bold mb-2">
+                          <h3 className="text-2xl font-bold mb-2">
                             {templateContent.centerText}
                           </h3>
-                          <p className="text-xs sm:text-sm lg:text-base">
+                          <p className="text-base">
                             {templateContent.centerSubtext}
                           </p>
                         </div>
@@ -358,12 +389,12 @@ export const DesignCanvas = forwardRef<HTMLDivElement, DesignCanvasProps>(
                       
                       {/* Footer */}
                       <div className="text-center">
-                        <div className="bg-white/15 backdrop-blur-sm rounded-xl p-3 sm:p-4 lg:p-6">
-                          <h3 className="text-lg sm:text-xl lg:text-2xl font-bold mb-2">
+                        <div className="bg-white/15 backdrop-blur-sm rounded-xl p-6">
+                          <h3 className="text-2xl font-bold mb-2">
                             {templateContent.footerTitle}
                           </h3>
-                          <p className="text-xs sm:text-sm lg:text-base mb-1">{templateContent.footerContact}</p>
-                          <p className="text-xs sm:text-sm">{templateContent.footerLocation}</p>
+                          <p className="text-base mb-1">{templateContent.footerContact}</p>
+                          <p className="text-sm">{templateContent.footerLocation}</p>
                         </div>
                       </div>
                     </div>
@@ -388,17 +419,37 @@ export const DesignCanvas = forwardRef<HTMLDivElement, DesignCanvasProps>(
 
           {/* Quick Actions */}
           {!isPreviewMode && (
-            <div className="flex justify-center mt-6 space-x-4">
-              <Button variant="outline" size="sm" onClick={addTextElement}>
+            <div className="flex justify-center mt-6 space-x-4 flex-wrap">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={addTextElement}
+                className="mb-2"
+              >
                 <Type className="w-4 h-4 ml-2" />
                 إضافة نص
               </Button>
-              <Button variant="outline" size="sm" onClick={() => document.getElementById('image-upload')?.click()}>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => {
+                  const input = document.createElement('input');
+                  input.type = 'file';
+                  input.accept = 'image/*';
+                  input.onchange = (e) => {
+                    const file = (e.target as HTMLInputElement).files?.[0];
+                    if (file) {
+                      const url = URL.createObjectURL(file);
+                      addImageElement(url);
+                    }
+                  };
+                  input.click();
+                }}
+                className="mb-2"
+              >
                 <ImageIcon className="w-4 h-4 ml-2" />
                 إضافة صورة
               </Button>
-              <Button variant="outline" size="sm">تغيير الخلفية</Button>
-              <Button variant="outline" size="sm">تغيير الألوان</Button>
             </div>
           )}
         </div>

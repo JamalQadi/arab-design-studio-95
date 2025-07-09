@@ -47,17 +47,18 @@ export const DraggableElement: React.FC<DraggableElementProps> = ({
   const elementRef = useRef<HTMLDivElement>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
 
-  // إدارة اللمس المزدوج للأجهزة المحمولة
-  const handleTouch = (e: React.TouchEvent) => {
+  // تحسين إدارة اللمس المزدوج
+  const handleTouchEnd = (e: React.TouchEvent) => {
     if (!isEditMode || type !== 'text') return;
     
-    const currentTime = new Date().getTime();
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const currentTime = Date.now();
     const tapLength = currentTime - lastTap;
     
-    if (tapLength < 500 && tapLength > 0) {
-      // لمس مزدوج - بدء التحرير
-      e.preventDefault();
-      e.stopPropagation();
+    if (tapLength < 300 && tapLength > 0) {
+      // لمس مزدوج سريع - بدء التحرير
       console.log('Double tap detected - starting text edit for:', id);
       setIsEditing(true);
       setEditValue(content);
@@ -66,6 +67,7 @@ export const DraggableElement: React.FC<DraggableElementProps> = ({
       // لمس واحد - تحديد العنصر
       setLastTap(currentTime);
       onSelect(id);
+      console.log('Single tap - selected element:', id);
     }
   };
 
@@ -74,8 +76,12 @@ export const DraggableElement: React.FC<DraggableElementProps> = ({
     
     e.preventDefault();
     e.stopPropagation();
-    setIsDragging(true);
+    
+    // تحديد العنصر أولاً
     onSelect(id);
+    
+    // بدء السحب
+    setIsDragging(true);
     setDragStart({
       x: e.clientX - x,
       y: e.clientY - y
@@ -87,12 +93,13 @@ export const DraggableElement: React.FC<DraggableElementProps> = ({
   const handleTouchStart = (e: React.TouchEvent) => {
     if (!isEditMode) return;
     
-    e.preventDefault();
-    e.stopPropagation();
-    
     const touch = e.touches[0];
-    setIsDragging(true);
+    
+    // تحديد العنصر أولاً
     onSelect(id);
+    
+    // بدء السحب
+    setIsDragging(true);
     setDragStart({
       x: touch.clientX - x,
       y: touch.clientY - y
@@ -101,13 +108,13 @@ export const DraggableElement: React.FC<DraggableElementProps> = ({
     console.log('Starting touch drag for element:', id);
   };
 
+  // تحسين إدارة الحركة
   const handleMouseMove = (e: MouseEvent) => {
     if (!isDragging || !isEditMode) return;
     
-    const newX = Math.max(0, e.clientX - dragStart.x);
-    const newY = Math.max(0, e.clientY - dragStart.y);
+    const newX = Math.max(0, Math.min(e.clientX - dragStart.x, window.innerWidth - width));
+    const newY = Math.max(0, Math.min(e.clientY - dragStart.y, window.innerHeight - height));
     
-    console.log('Dragging element to:', { newX, newY });
     onUpdate(id, { x: newX, y: newY });
   };
 
@@ -116,23 +123,15 @@ export const DraggableElement: React.FC<DraggableElementProps> = ({
     
     e.preventDefault();
     const touch = e.touches[0];
-    const newX = Math.max(0, touch.clientX - dragStart.x);
-    const newY = Math.max(0, touch.clientY - dragStart.y);
+    const newX = Math.max(0, Math.min(touch.clientX - dragStart.x, window.innerWidth - width));
+    const newY = Math.max(0, Math.min(touch.clientY - dragStart.y, window.innerHeight - height));
     
-    console.log('Touch dragging element to:', { newX, newY });
     onUpdate(id, { x: newX, y: newY });
   };
 
-  const handleMouseUp = () => {
+  const handleDragEnd = () => {
     if (isDragging) {
       console.log('Stopped dragging element:', id);
-      setIsDragging(false);
-    }
-  };
-
-  const handleTouchEnd = () => {
-    if (isDragging) {
-      console.log('Stopped touch dragging element:', id);
       setIsDragging(false);
     }
   };
@@ -140,21 +139,22 @@ export const DraggableElement: React.FC<DraggableElementProps> = ({
   useEffect(() => {
     if (isDragging) {
       document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
+      document.addEventListener('mouseup', handleDragEnd);
       document.addEventListener('touchmove', handleTouchMove, { passive: false });
-      document.addEventListener('touchend', handleTouchEnd);
+      document.addEventListener('touchend', handleDragEnd);
       
       return () => {
         document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseup', handleMouseUp);
+        document.removeEventListener('mouseup', handleDragEnd);
         document.removeEventListener('touchmove', handleTouchMove);
-        document.removeEventListener('touchend', handleTouchEnd);
+        document.removeEventListener('touchend', handleDragEnd);
       };
     }
   }, [isDragging, dragStart]);
 
   const handleDoubleClick = (e: React.MouseEvent) => {
     if (!isEditMode || type !== 'text') return;
+    e.preventDefault();
     e.stopPropagation();
     console.log('Double click - starting text edit for:', id);
     setIsEditing(true);
@@ -162,13 +162,16 @@ export const DraggableElement: React.FC<DraggableElementProps> = ({
   };
 
   const handleEditSubmit = () => {
-    console.log('Saving text edit:', editValue);
-    onUpdate(id, { content: editValue });
+    if (editValue.trim()) {
+      console.log('Saving text edit:', editValue);
+      onUpdate(id, { content: editValue.trim() });
+    }
     setIsEditing(false);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
+      e.preventDefault();
       handleEditSubmit();
     } else if (e.key === 'Escape') {
       setIsEditing(false);
@@ -176,47 +179,44 @@ export const DraggableElement: React.FC<DraggableElementProps> = ({
     }
   };
 
-  const handleRotate = (e: React.MouseEvent | React.TouchEvent) => {
+  const handleControlAction = (action: 'rotate' | 'resize' | 'delete', e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
     e.stopPropagation();
-    const newRotation = (rotation + 90) % 360;
-    console.log('Rotating element to:', newRotation);
-    onUpdate(id, { rotation: newRotation });
-  };
-
-  const handleResize = (e: React.MouseEvent | React.TouchEvent) => {
-    e.stopPropagation();
-    const newWidth = Math.min(width + 20, 400);
-    const newHeight = Math.min(height + 20, 400);
-    console.log('Resizing element to:', { newWidth, newHeight });
-    onUpdate(id, { width: newWidth, height: newHeight });
-  };
-
-  const handleDelete = (e: React.MouseEvent | React.TouchEvent) => {
-    e.stopPropagation();
-    console.log('Deleting element:', id);
-    onDelete(id);
-  };
-
-  const handleElementClick = (e: React.MouseEvent) => {
-    if (!isEditMode) return;
-    e.stopPropagation();
-    onSelect(id);
-    console.log('Selected element:', id);
+    
+    switch (action) {
+      case 'rotate':
+        const newRotation = (rotation + 90) % 360;
+        console.log('Rotating element to:', newRotation);
+        onUpdate(id, { rotation: newRotation });
+        break;
+      case 'resize':
+        const newWidth = Math.min(width + 20, 400);
+        const newHeight = Math.min(height + 20, 400);
+        console.log('Resizing element to:', { newWidth, newHeight });
+        onUpdate(id, { width: newWidth, height: newHeight });
+        break;
+      case 'delete':
+        console.log('Deleting element:', id);
+        onDelete(id);
+        break;
+    }
   };
 
   // تركيز الإدخال عند بدء التحرير
   useEffect(() => {
     if (isEditing && editInputRef.current) {
-      editInputRef.current.focus();
-      editInputRef.current.select();
+      setTimeout(() => {
+        editInputRef.current?.focus();
+        editInputRef.current?.select();
+      }, 100);
     }
   }, [isEditing]);
 
   return (
     <div
       ref={elementRef}
-      className={`absolute select-none transition-all ${
-        isSelected && isEditMode ? 'ring-2 ring-blue-500 ring-opacity-75' : ''
+      className={`absolute select-none transition-all duration-200 ${
+        isSelected && isEditMode ? 'ring-2 ring-blue-500 ring-opacity-75 shadow-lg' : ''
       } ${isEditMode ? 'cursor-move hover:ring-1 hover:ring-blue-300' : 'cursor-default'}`}
       style={{
         left: x,
@@ -224,13 +224,12 @@ export const DraggableElement: React.FC<DraggableElementProps> = ({
         width: width,
         height: height,
         transform: `rotate(${rotation}deg)`,
-        zIndex: isSelected ? 1000 : 10,
+        zIndex: isSelected ? 1000 : isDragging ? 999 : 10,
         touchAction: 'none'
       }}
       onMouseDown={handleMouseDown}
       onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouch}
-      onClick={handleElementClick}
+      onTouchEnd={handleTouchEnd}
       onDoubleClick={handleDoubleClick}
     >
       {type === 'text' ? (
@@ -242,65 +241,71 @@ export const DraggableElement: React.FC<DraggableElementProps> = ({
             onBlur={handleEditSubmit}
             onKeyDown={handleKeyPress}
             style={{ fontSize: fontSize, color: color }}
-            className="w-full h-full border-2 border-blue-500 bg-white text-black px-2"
+            className="w-full h-full border-2 border-blue-500 bg-white text-black px-2 rounded"
             onClick={(e) => e.stopPropagation()}
+            placeholder="اكتب النص هنا..."
           />
         ) : (
           <div
-            className="w-full h-full flex items-center justify-center text-white font-bold break-words px-2"
+            className="w-full h-full flex items-center justify-center text-white font-bold break-words px-2 rounded"
             style={{ 
               fontSize: fontSize, 
               color: color,
-              textShadow: '1px 1px 2px rgba(0,0,0,0.5)',
+              textShadow: '2px 2px 4px rgba(0,0,0,0.7)',
               wordWrap: 'break-word',
-              overflowWrap: 'break-word'
+              overflowWrap: 'break-word',
+              backgroundColor: 'rgba(0,0,0,0.1)'
             }}
           >
-            {content}
+            {content || 'نص فارغ'}
           </div>
         )
       ) : (
         <img
           src={content}
-          alt="Uploaded"
-          className="w-full h-full object-cover rounded"
+          alt="صورة"
+          className="w-full h-full object-cover rounded shadow-md"
           draggable={false}
           style={{ touchAction: 'none' }}
+          onError={(e) => {
+            console.error('Image load error:', content);
+            e.currentTarget.style.display = 'none';
+          }}
         />
       )}
 
-      {/* Controls - only show when selected and in edit mode */}
+      {/* أزرار التحكم - تحسين للهاتف */}
       {isSelected && isEditMode && !isEditing && (
-        <div className="absolute -top-12 left-0 flex gap-1 bg-black bg-opacity-80 rounded px-2 py-1 z-50">
+        <div className="absolute -top-14 left-0 flex gap-1 bg-black bg-opacity-90 rounded-lg px-2 py-1 z-50 shadow-lg">
           <Button
             size="sm"
             variant="ghost"
-            className="h-8 w-8 p-0 text-white hover:bg-white hover:bg-opacity-20 touch-manipulation"
-            onClick={handleRotate}
-            onTouchEnd={handleRotate}
+            className="h-10 w-10 p-0 text-white hover:bg-white hover:bg-opacity-20 touch-manipulation"
+            onClick={(e) => handleControlAction('rotate', e)}
+            onTouchEnd={(e) => handleControlAction('rotate', e)}
             title="تدوير"
           >
-            <RotateCcw className="w-4 h-4" />
+            <RotateCcw className="w-5 h-5" />
           </Button>
           <Button
             size="sm"
             variant="ghost"
-            className="h-8 w-8 p-0 text-white hover:bg-white hover:bg-opacity-20 touch-manipulation"
-            onClick={handleResize}
-            onTouchEnd={handleResize}
+            className="h-10 w-10 p-0 text-white hover:bg-white hover:bg-opacity-20 touch-manipulation"
+            onClick={(e) => handleControlAction('resize', e)}
+            onTouchEnd={(e) => handleControlAction('resize', e)}
             title="تكبير"
           >
-            <Expand className="w-4 h-4" />
+            <Expand className="w-5 h-5" />
           </Button>
           <Button
             size="sm"
             variant="ghost"
-            className="h-8 w-8 p-0 text-red-400 hover:bg-red-500 hover:bg-opacity-20 touch-manipulation"
-            onClick={handleDelete}
-            onTouchEnd={handleDelete}
+            className="h-10 w-10 p-0 text-red-400 hover:bg-red-500 hover:bg-opacity-20 touch-manipulation"
+            onClick={(e) => handleControlAction('delete', e)}
+            onTouchEnd={(e) => handleControlAction('delete', e)}
             title="حذف"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </Button>
         </div>
       )}
