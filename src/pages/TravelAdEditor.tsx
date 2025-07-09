@@ -34,6 +34,8 @@ const TravelAdEditor = () => {
   });
   const [history, setHistory] = useState<any[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [currentDrawerContent, setCurrentDrawerContent] = useState<'templates' | 'tools' | 'properties' | 'layers'>('templates');
   const canvasRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   
@@ -160,6 +162,9 @@ const TravelAdEditor = () => {
       title: "تم تغيير القالب",
       description: `تم اختيار قالب: ${templates[templateIndex]?.name}`,
     });
+
+    // إغلاق الدرج بعد تغيير القالب
+    setIsDrawerOpen(false);
   };
 
   const handleImageSelect = (imageData: any) => {
@@ -185,6 +190,33 @@ const TravelAdEditor = () => {
       template: selectedTemplate // Ensure template is preserved
     });
     saveToHistory(newDesignData);
+  };
+
+  const openDrawer = (content: 'templates' | 'tools' | 'properties' | 'layers') => {
+    console.log('Opening drawer with content:', content);
+    setCurrentDrawerContent(content);
+    setIsDrawerOpen(true);
+  };
+
+  const renderDrawerContent = () => {
+    switch (currentDrawerContent) {
+      case 'templates':
+        return (
+          <TemplatesPanel 
+            templates={templates}
+            selectedTemplate={selectedTemplate}
+            onTemplateSelect={handleTemplateChange}
+          />
+        );
+      case 'tools':
+        return <ToolboxPanel />;
+      case 'properties':
+        return <PropertiesPanel />;
+      case 'layers':
+        return <LayersPanel />;
+      default:
+        return null;
+    }
   };
 
   return (
@@ -353,44 +385,6 @@ const TravelAdEditor = () => {
           </div>
         </div>
 
-        {/* Mobile Bottom Panel */}
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-10">
-          <div className="flex justify-around py-2">
-            {[
-              { id: 'templates', label: 'القوالب', icon: '🎨' },
-              { id: 'tools', label: 'الأدوات', icon: '🛠️' },
-              { id: 'properties', label: 'الخصائص', icon: '⚙️' },
-              { id: 'layers', label: 'الطبقات', icon: '📚' }
-            ].map((tab) => (
-              <Drawer key={tab.id}>
-                <DrawerTrigger asChild>
-                  <button className="flex flex-col items-center py-2 px-3 text-xs text-gray-600">
-                    <span className="text-lg mb-1">{tab.icon}</span>
-                    <span>{tab.label}</span>
-                  </button>
-                </DrawerTrigger>
-                <DrawerContent className="max-h-[70vh]">
-                  <DrawerHeader>
-                    <DrawerTitle>{tab.label}</DrawerTitle>
-                  </DrawerHeader>
-                  <div className="overflow-y-auto">
-                    {tab.id === 'templates' && (
-                      <TemplatesPanel 
-                        templates={templates}
-                        selectedTemplate={selectedTemplate}
-                        onTemplateSelect={handleTemplateChange}
-                      />
-                    )}
-                    {tab.id === 'tools' && <ToolboxPanel />}
-                    {tab.id === 'properties' && <PropertiesPanel />}
-                    {tab.id === 'layers' && <LayersPanel />}
-                  </div>
-                </DrawerContent>
-              </Drawer>
-            ))}
-          </div>
-        </div>
-
         {/* Main Canvas Area */}
         <div className="flex-1 flex flex-col bg-gray-100 pb-16 lg:pb-0">
           <DesignCanvas 
@@ -402,6 +396,45 @@ const TravelAdEditor = () => {
             onDesignChange={handleDesignChange}
           />
         </div>
+
+        {/* Mobile Bottom Panel - تحديث مهم هنا */}
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
+          <div className="flex justify-around py-2">
+            {[
+              { id: 'templates', label: 'القوالب', icon: '🎨' },
+              { id: 'tools', label: 'الأدوات', icon: '🛠️' },
+              { id: 'properties', label: 'الخصائص', icon: '⚙️' },
+              { id: 'layers', label: 'الطبقات', icon: '📚' }
+            ].map((tab) => (
+              <button 
+                key={tab.id}
+                className="flex flex-col items-center py-2 px-3 text-xs text-gray-600 hover:text-gray-900 transition-colors active:bg-gray-100 touch-manipulation"
+                onClick={() => openDrawer(tab.id as any)}
+                style={{ minHeight: '60px', WebkitTapHighlightColor: 'rgba(0,0,0,0.1)' }}
+              >
+                <span className="text-lg mb-1">{tab.icon}</span>
+                <span className="text-center">{tab.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Drawer للهاتف المحمول */}
+        <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
+          <DrawerContent className="max-h-[80vh]">
+            <DrawerHeader>
+              <DrawerTitle>
+                {currentDrawerContent === 'templates' && 'القوالب'}
+                {currentDrawerContent === 'tools' && 'الأدوات'}
+                {currentDrawerContent === 'properties' && 'الخصائص'}
+                {currentDrawerContent === 'layers' && 'الطبقات'}
+              </DrawerTitle>
+            </DrawerHeader>
+            <div className="overflow-y-auto flex-1">
+              {renderDrawerContent()}
+            </div>
+          </DrawerContent>
+        </Drawer>
       </div>
     </div>
   );
