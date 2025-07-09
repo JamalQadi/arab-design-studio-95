@@ -145,6 +145,146 @@ export const DesignCanvas = forwardRef<HTMLDivElement, DesignCanvasProps>(
       }
     };
 
+    const createDefaultTemplateElements = useCallback((template: Template) => {
+      const content = getTemplateContent(template);
+      const icon = getCategoryIcon(template.category);
+      
+      const defaultElements: DesignElement[] = [
+        // العنوان الرئيسي
+        {
+          id: `title-${Date.now()}`,
+          type: 'text',
+          content: content.title,
+          x: 50,
+          y: 50,
+          width: 500,
+          height: 60,
+          rotation: 0,
+          fontSize: 32,
+          color: '#ffffff'
+        },
+        // العنوان الفرعي
+        {
+          id: `subtitle-${Date.now() + 1}`,
+          type: 'text',
+          content: content.subtitle,
+          x: 50,
+          y: 120,
+          width: 500,
+          height: 40,
+          rotation: 0,
+          fontSize: 18,
+          color: '#ffffff'
+        },
+        // الأيقونة العلوية
+        {
+          id: `icon-top-${Date.now() + 2}`,
+          type: 'text',
+          content: icon,
+          x: 450,
+          y: 80,
+          width: 80,
+          height: 80,
+          rotation: 0,
+          fontSize: 64,
+          color: '#ffffff'
+        },
+        // النص المركزي
+        {
+          id: `center-text-${Date.now() + 3}`,
+          type: 'text',
+          content: content.centerText,
+          x: 200,
+          y: 250,
+          width: 200,
+          height: 50,
+          rotation: 0,
+          fontSize: 28,
+          color: '#ffffff'
+        },
+        // النص المركزي الفرعي
+        {
+          id: `center-subtext-${Date.now() + 4}`,
+          type: 'text',
+          content: content.centerSubtext,
+          x: 150,
+          y: 310,
+          width: 300,
+          height: 40,
+          rotation: 0,
+          fontSize: 16,
+          color: '#ffffff'
+        },
+        // الأيقونة المركزية
+        {
+          id: `icon-center-${Date.now() + 5}`,
+          type: 'text',
+          content: icon,
+          x: 260,
+          y: 360,
+          width: 80,
+          height: 80,
+          rotation: 0,
+          fontSize: 48,
+          color: '#ffffff'
+        },
+        // اسم المكتب
+        {
+          id: `footer-title-${Date.now() + 6}`,
+          type: 'text',
+          content: content.footerTitle,
+          x: 50,
+          y: 480,
+          width: 500,
+          height: 40,
+          rotation: 0,
+          fontSize: 20,
+          color: '#ffffff'
+        },
+        // رقم التليفون
+        {
+          id: `footer-contact-${Date.now() + 7}`,
+          type: 'text',
+          content: content.footerContact,
+          x: 50,
+          y: 520,
+          width: 500,
+          height: 30,
+          rotation: 0,
+          fontSize: 16,
+          color: '#ffffff'
+        },
+        // العنوان
+        {
+          id: `footer-location-${Date.now() + 8}`,
+          type: 'text',
+          content: content.footerLocation,
+          x: 50,
+          y: 550,
+          width: 500,
+          height: 30,
+          rotation: 0,
+          fontSize: 14,
+          color: '#ffffff'
+        },
+        // الأيقونة السفلية
+        {
+          id: `icon-bottom-${Date.now() + 9}`,
+          type: 'text',
+          content: icon,
+          x: 50,
+          y: 450,
+          width: 60,
+          height: 60,
+          rotation: 0,
+          fontSize: 40,
+          color: '#ffffff'
+        }
+      ];
+      
+      return defaultElements;
+    }, []);
+
     const handleCanvasClick = (e: React.MouseEvent) => {
       if (isPreviewMode) return;
       
@@ -255,22 +395,30 @@ export const DesignCanvas = forwardRef<HTMLDivElement, DesignCanvasProps>(
       }
     }, [elements, designData, onDesignChange, selectedTemplate]);
 
-    // تحميل العناصر من البيانات
+    // تحميل العناصر من البيانات أو إنشاء عناصر افتراضية
     useEffect(() => {
-      if (designData?.elements && Array.isArray(designData.elements)) {
+      if (designData?.elements && Array.isArray(designData.elements) && designData.elements.length > 0) {
         console.log('Loading elements from designData:', designData.elements);
         setElements(designData.elements);
+      } else {
+        // إنشاء عناصر افتراضية للقالب
+        const currentTemplate = templates[selectedTemplate] || templates[0];
+        if (currentTemplate) {
+          const defaultElements = createDefaultTemplateElements(currentTemplate);
+          console.log('Creating default template elements:', defaultElements);
+          setElements(defaultElements);
+          
+          // تحديث البيانات بالعناصر الافتراضية
+          if (onDesignChange) {
+            onDesignChange({
+              ...designData,
+              elements: defaultElements,
+              template: selectedTemplate
+            });
+          }
+        }
       }
-    }, [designData?.elements]);
-
-    // إعادة تعيين العناصر عند تغيير القالب
-    useEffect(() => {
-      console.log('Template changed to:', selectedTemplate, templates[selectedTemplate]);
-      setElements([]);
-      setSelectedElement(null);
-      setZoom(100);
-      setRotation(0);
-    }, [selectedTemplate]);
+    }, [selectedTemplate, templates, createDefaultTemplateElements]);
 
     // تحميل الصور المرفوعة كعناصر
     useEffect(() => {
@@ -297,9 +445,8 @@ export const DesignCanvas = forwardRef<HTMLDivElement, DesignCanvasProps>(
     }, [designData?.images]);
 
     const currentTemplate = templates[selectedTemplate] || templates[0];
-    const templateContent = getTemplateContent(currentTemplate);
 
-    console.log('Rendering with template:', currentTemplate, 'Content:', templateContent);
+    console.log('Rendering with template:', currentTemplate, 'Elements count:', elements.length);
 
     return (
       <div className="flex-1 flex flex-col">
@@ -350,56 +497,7 @@ export const DesignCanvas = forwardRef<HTMLDivElement, DesignCanvasProps>(
                       touchAction: 'manipulation'
                     }}
                   >
-                    {/* Background Pattern */}
-                    <div className="absolute inset-0 opacity-10 pointer-events-none">
-                      <div className="absolute top-8 right-8 text-8xl">
-                        {getCategoryIcon(currentTemplate?.category)}
-                      </div>
-                      <div className="absolute bottom-8 left-8 text-6xl opacity-50">
-                        {getCategoryIcon(currentTemplate?.category)}
-                      </div>
-                    </div>
-
-                    {/* Template Content */}
-                    <div className="absolute inset-0 flex flex-col justify-between p-8 text-white pointer-events-none">
-                      {/* Header */}
-                      <div className="text-center">
-                        <h1 className="text-4xl font-bold mb-4 leading-tight">
-                          {templateContent.title}
-                        </h1>
-                        <p className="text-xl opacity-90">
-                          {templateContent.subtitle}
-                        </p>
-                      </div>
-                      
-                      {/* Center Content */}
-                      <div className="text-center">
-                        <div className="bg-white/20 backdrop-blur-sm rounded-xl p-6 inline-block">
-                          <div className="text-6xl mb-4">
-                            {getCategoryIcon(currentTemplate?.category)}
-                          </div>
-                          <h3 className="text-2xl font-bold mb-2">
-                            {templateContent.centerText}
-                          </h3>
-                          <p className="text-base">
-                            {templateContent.centerSubtext}
-                          </p>
-                        </div>
-                      </div>
-                      
-                      {/* Footer */}
-                      <div className="text-center">
-                        <div className="bg-white/15 backdrop-blur-sm rounded-xl p-6">
-                          <h3 className="text-2xl font-bold mb-2">
-                            {templateContent.footerTitle}
-                          </h3>
-                          <p className="text-base mb-1">{templateContent.footerContact}</p>
-                          <p className="text-sm">{templateContent.footerLocation}</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Draggable Elements */}
+                    {/* Draggable Elements - جميع النصوص قابلة للتحرير الآن */}
                     {elements.map((element) => (
                       <DraggableElement
                         key={element.id}
