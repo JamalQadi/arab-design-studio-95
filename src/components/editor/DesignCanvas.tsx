@@ -1,4 +1,3 @@
-
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ZoomIn, ZoomOut, RotateCcw, Maximize, Type, Image as ImageIcon } from "lucide-react";
@@ -149,10 +148,13 @@ export const DesignCanvas = forwardRef<HTMLDivElement, DesignCanvasProps>(
       const content = getTemplateContent(template);
       const icon = getCategoryIcon(template.category);
       
+      // Use crypto.randomUUID() for better unique IDs
+      const generateId = () => crypto.randomUUID();
+      
       const defaultElements: DesignElement[] = [
         // العنوان الرئيسي
         {
-          id: `title-${Date.now()}`,
+          id: `title-${generateId()}`,
           type: 'text',
           content: content.title,
           x: 50,
@@ -165,7 +167,7 @@ export const DesignCanvas = forwardRef<HTMLDivElement, DesignCanvasProps>(
         },
         // العنوان الفرعي
         {
-          id: `subtitle-${Date.now() + 1}`,
+          id: `subtitle-${generateId()}`,
           type: 'text',
           content: content.subtitle,
           x: 50,
@@ -178,7 +180,7 @@ export const DesignCanvas = forwardRef<HTMLDivElement, DesignCanvasProps>(
         },
         // الأيقونة العلوية
         {
-          id: `icon-top-${Date.now() + 2}`,
+          id: `icon-top-${generateId()}`,
           type: 'text',
           content: icon,
           x: 450,
@@ -191,7 +193,7 @@ export const DesignCanvas = forwardRef<HTMLDivElement, DesignCanvasProps>(
         },
         // النص المركزي
         {
-          id: `center-text-${Date.now() + 3}`,
+          id: `center-text-${generateId()}`,
           type: 'text',
           content: content.centerText,
           x: 200,
@@ -204,7 +206,7 @@ export const DesignCanvas = forwardRef<HTMLDivElement, DesignCanvasProps>(
         },
         // النص المركزي الفرعي
         {
-          id: `center-subtext-${Date.now() + 4}`,
+          id: `center-subtext-${generateId()}`,
           type: 'text',
           content: content.centerSubtext,
           x: 150,
@@ -217,7 +219,7 @@ export const DesignCanvas = forwardRef<HTMLDivElement, DesignCanvasProps>(
         },
         // الأيقونة المركزية
         {
-          id: `icon-center-${Date.now() + 5}`,
+          id: `icon-center-${generateId()}`,
           type: 'text',
           content: icon,
           x: 260,
@@ -230,7 +232,7 @@ export const DesignCanvas = forwardRef<HTMLDivElement, DesignCanvasProps>(
         },
         // اسم المكتب
         {
-          id: `footer-title-${Date.now() + 6}`,
+          id: `footer-title-${generateId()}`,
           type: 'text',
           content: content.footerTitle,
           x: 50,
@@ -243,7 +245,7 @@ export const DesignCanvas = forwardRef<HTMLDivElement, DesignCanvasProps>(
         },
         // رقم التليفون
         {
-          id: `footer-contact-${Date.now() + 7}`,
+          id: `footer-contact-${generateId()}`,
           type: 'text',
           content: content.footerContact,
           x: 50,
@@ -256,7 +258,7 @@ export const DesignCanvas = forwardRef<HTMLDivElement, DesignCanvasProps>(
         },
         // العنوان
         {
-          id: `footer-location-${Date.now() + 8}`,
+          id: `footer-location-${generateId()}`,
           type: 'text',
           content: content.footerLocation,
           x: 50,
@@ -269,7 +271,7 @@ export const DesignCanvas = forwardRef<HTMLDivElement, DesignCanvasProps>(
         },
         // الأيقونة السفلية
         {
-          id: `icon-bottom-${Date.now() + 9}`,
+          id: `icon-bottom-${generateId()}`,
           type: 'text',
           content: icon,
           x: 50,
@@ -302,7 +304,7 @@ export const DesignCanvas = forwardRef<HTMLDivElement, DesignCanvasProps>(
       if (isPreviewMode) return;
       
       const newElement: DesignElement = {
-        id: `text-${Date.now()}`,
+        id: `text-${crypto.randomUUID()}`,
         type: 'text',
         content: 'نص جديد',
         x: 50,
@@ -334,7 +336,7 @@ export const DesignCanvas = forwardRef<HTMLDivElement, DesignCanvasProps>(
       if (isPreviewMode) return;
       
       const newElement: DesignElement = {
-        id: `image-${Date.now()}`,
+        id: `image-${crypto.randomUUID()}`,
         type: 'image',
         content: imageUrl,
         x: 100,
