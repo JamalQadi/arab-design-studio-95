@@ -1,205 +1,122 @@
 
 import { supabaseService } from './supabaseService';
 
-interface User {
+export interface User {
   id: string;
-  name: string;
   email: string;
-  createdAt: string;
+  name: string;
 }
 
-interface LoginCredentials {
-  email: string;
-  password: string;
-}
-
-interface RegisterData {
-  name: string;
+export interface LoginCredentials {
   email: string;
   password: string;
 }
 
-interface Project {
-  id: string;
+export interface RegisterCredentials {
   name: string;
-  type: 'travel' | 'cv' | 'logo' | 'social';
-  status: 'مكتمل' | 'مسودة' | 'قيد التطوير';
-  data: any;
-  createdAt: string;
-  updatedAt: string;
-  downloads: number;
-}
-
-interface Template {
-  id: string;
-  name: string;
-  type: string;
-  category: string;
-  data: any;
-  createdAt: string;
-  isCustom: boolean;
+  email: string;
+  password: string;
 }
 
 class AuthService {
   private currentUser: User | null = null;
 
-  constructor() {
-    this.initializeAuthState();
-  }
-
-  private async initializeAuthState() {
+  async login(credentials: LoginCredentials) {
     try {
-      const { data: { user } } = await supabaseService.getCurrentUser();
-      if (user) {
+      const result = await supabaseService.signIn(credentials.email, credentials.password);
+      
+      if (result.success && result.user) {
         this.currentUser = {
-          id: user.id,
-          name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'مستخدم',
-          email: user.email || '',
-          createdAt: user.created_at
+          id: result.user.id,
+          email: result.user.email || '',
+          name: result.user.user_metadata?.full_name || result.user.email || '',
         };
+        
+        // Store user in localStorage for persistence
+        localStorage.setItem('user', JSON.stringify(this.currentUser));
+        
+        return { success: true, user: this.currentUser };
       }
-    } catch (error) {
-      console.error('Error initializing auth state:', error);
+      
+      return { success: false, error: result.error };
+    } catch (error: any) {
+      console.error('Login error:', error);
+      return { success: false, error: error.message || 'حدث خطأ أثناء تسجيل الدخول' };
     }
-
-    // Listen for auth state changes
-    supabaseService.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' && session?.user) {
-        this.currentUser = {
-          id: session.user.id,
-          name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'مستخدم',
-          email: session.user.email || '',
-          createdAt: session.user.created_at
-        };
-      } else if (event === 'SIGNED_OUT') {
-        this.currentUser = null;
-      }
-    });
   }
 
-  async login(credentials: LoginCredentials): Promise<{ success: boolean; user?: User; error?: string }> {
-    const result = await supabaseService.signIn(credentials.email, credentials.password);
-    
-    if (result.success && result.user) {
-      this.currentUser = {
-        id: result.user.id,
-        name: result.user.user_metadata?.full_name || result.user.email?.split('@')[0] || 'مستخدم',
-        email: result.user.email || '',
-        createdAt: result.user.created_at
-      };
-      return { success: true, user: this.currentUser };
+  async register(credentials: RegisterCredentials) {
+    try {
+      const result = await supabaseService.signUp(
+        credentials.email, 
+        credentials.password, 
+        credentials.name
+      );
+      
+      return { success: result.success, error: result.error };
+    } catch (error: any) {
+      console.error('Register error:', error);
+      return { success: false, error: error.message || 'حدث خطأ أثناء إنشاء الحساب' };
     }
-
-    return { success: false, error: result.error || 'خطأ في تسجيل الدخول' };
-  }
-
-  async register(userData: RegisterData): Promise<{ success: boolean; user?: User; error?: string }> {
-    const result = await supabaseService.signUp(userData.email, userData.password, userData.name);
-    
-    if (result.success && result.user) {
-      // Note: user will be null until email verification
-      return { success: true };
-    }
-
-    return { success: false, error: result.error || 'خطأ في إنشاء الحساب' };
   }
 
   async logout() {
-    const result = await supabaseService.signOut();
-    if (result.success) {
+    try {
+      await supabaseService.signOut();
       this.currentUser = null;
+      localStorage.removeItem('user');
+    } catch (error) {
+      console.error('Logout error:', error);
     }
-    return result;
   }
 
   getCurrentUser(): User | null {
-    return this.currentUser;
+    if (this.currentUser) {
+      return this.currentUser;
+    }
+    
+    // Try to get user from localStorage
+    try {
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        this.currentUser = JSON.parse(storedUser);
+        return this.currentUser;
+      }
+    } catch (error) {
+      console.error('Error getting user from localStorage:', error);
+    }
+    
+    return null;
   }
 
   isAuthenticated(): boolean {
-    return this.currentUser !== null;
+    return this.getCurrentUser() !== null;
   }
 
-  // Projects methods - now using Supabase
-  async createProject(projectData: {
-    name: string;
-    type: 'travel' | 'cv' | 'logo' | 'social';
-    data?: any;
+  // Project management methods using supabaseService
+  async createProject(project: { 
+    name: string; 
+    type: 'travel' | 'cv' | 'logo' | 'social'; 
+    data?: any; 
   }) {
-    return await supabaseService.createProject(projectData);
+    return await supabaseService.createProject(project);
   }
 
-  async getProjects(): Promise<Project[]> {
-    const supabaseProjects = await supabaseService.getProjects();
-    return supabaseProjects.map(project => ({
-      id: project.id,
-      name: project.name,
-      type: project.type,
-      status: project.status,
-      data: project.data,
-      createdAt: project.created_at,
-      updatedAt: project.updated_at,
-      downloads: project.downloads
-    }));
+  async getProjects() {
+    return await supabaseService.getProjects();
   }
 
-  async updateProject(projectId: string, updates: Partial<Project>) {
-    const supabaseUpdates: any = {};
-    if (updates.name) supabaseUpdates.name = updates.name;
-    if (updates.status) supabaseUpdates.status = updates.status;
-    if (updates.data) supabaseUpdates.data = updates.data;
-    if (updates.downloads !== undefined) supabaseUpdates.downloads = updates.downloads;
-
-    return await supabaseService.updateProject(projectId, supabaseUpdates);
+  async updateProject(projectId: string, updates: any) {
+    return await supabaseService.updateProject(projectId, updates);
   }
 
   async deleteProject(projectId: string) {
     return await supabaseService.deleteProject(projectId);
   }
 
-  // Templates methods
-  async saveTemplate(templateData: {
-    name: string;
-    type: string;
-    category: string;
-    data: any;
-  }) {
-    return await supabaseService.saveTemplate(templateData);
-  }
-
-  async getTemplates(): Promise<Template[]> {
-    const supabaseTemplates = await supabaseService.getTemplates();
-    return supabaseTemplates.map(template => ({
-      id: template.id,
-      name: template.name,
-      type: template.type,
-      category: template.category,
-      data: template.data,
-      createdAt: template.created_at,
-      isCustom: template.is_custom
-    }));
-  }
-
-  // CV methods
-  async saveCVData(cvData: any) {
-    return await supabaseService.saveCVData(cvData);
-  }
-
-  async getCVData(): Promise<any[]> {
-    const supabaseCVs = await supabaseService.getCVData();
-    return supabaseCVs.map(cv => ({
-      id: cv.id,
-      data: cv.data,
-      createdAt: cv.created_at,
-      updatedAt: cv.updated_at
-    }));
-  }
-
-  // User stats
   async getUserStats() {
     return await supabaseService.getUserStats();
   }
 }
 
 export const authService = new AuthService();
-export type { User, LoginCredentials, RegisterData, Project, Template };

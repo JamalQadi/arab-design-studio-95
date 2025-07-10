@@ -1,80 +1,72 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Globe, User, LogOut } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
-import { authService, User as UserType } from "@/services/authService";
-import { useToast } from "@/hooks/use-toast";
+import { Menu, X, User, LogOut } from "lucide-react";
+import { Link } from "react-router-dom";
+import { useAuth } from "@/components/auth/AuthProvider";
 
-export const Header = () => {
+const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [currentUser, setCurrentUser] = useState<UserType | null>(null);
-  const navigate = useNavigate();
-  const { toast } = useToast();
+  const { user, logout } = useAuth();
 
-  useEffect(() => {
-    setCurrentUser(authService.getCurrentUser());
-  }, []);
-
-  const handleLogout = () => {
-    authService.logout();
-    setCurrentUser(null);
-    toast({
-      title: "تم تسجيل الخروج",
-      description: "تم تسجيل الخروج بنجاح",
-    });
-    navigate("/");
+  const handleLogout = async () => {
+    await logout();
   };
 
   return (
-    <header className="bg-white shadow-sm border-b border-gray-100 sticky top-0 z-50">
+    <header className="bg-white shadow-sm border-b" dir="rtl">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">DS</span>
-            </div>
-            <span className="text-xl font-bold text-gray-900">ديزاين ستوديو</span>
-          </Link>
+          <div className="flex-shrink-0">
+            <Link to="/" className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+              استوديو التصميم العربي
+            </Link>
+          </div>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-8">
-            <a href="#services" className="text-gray-700 hover:text-blue-600 transition-colors">الخدمات</a>
-            <Link to="/templates" className="text-gray-700 hover:text-blue-600 transition-colors">القوالب</Link>
-            <a href="#features" className="text-gray-700 hover:text-blue-600 transition-colors">المميزات</a>
-            <a href="#pricing" className="text-gray-700 hover:text-blue-600 transition-colors">الأسعار</a>
+          <nav className="hidden md:block">
+            <div className="flex items-center space-x-reverse space-x-8">
+              <Link to="/#features" className="text-gray-700 hover:text-purple-600 px-3 py-2 text-sm font-medium">
+                المميزات
+              </Link>
+              <Link to="/#services" className="text-gray-700 hover:text-purple-600 px-3 py-2 text-sm font-medium">
+                خدماتنا
+              </Link>
+              <Link to="/#templates" className="text-gray-700 hover:text-purple-600 px-3 py-2 text-sm font-medium">
+                قوالب
+              </Link>
+              <Link to="/#pricing" className="text-gray-700 hover:text-purple-600 px-3 py-2 text-sm font-medium">
+                الأسعار
+              </Link>
+              {user && (
+                <Link to="/dashboard" className="text-gray-700 hover:text-purple-600 px-3 py-2 text-sm font-medium">
+                  لوحة التحكم
+                </Link>
+              )}
+            </div>
           </nav>
 
-          {/* Actions */}
-          <div className="hidden md:flex items-center space-x-4">
-            <Button variant="ghost" size="sm" className="flex items-center space-x-2">
-              <Globe className="w-4 h-4" />
-              <span>العربية</span>
-            </Button>
-            
-            {currentUser ? (
-              <div className="flex items-center space-x-3">
-                <Link to="/dashboard">
-                  <Button variant="outline" size="sm" className="flex items-center space-x-2">
-                    <User className="w-4 h-4" />
-                    <span>{currentUser.name}</span>
-                  </Button>
-                </Link>
-                <Button variant="ghost" size="sm" onClick={handleLogout} className="flex items-center space-x-2">
-                  <LogOut className="w-4 h-4" />
-                  <span>خروج</span>
+          {/* Desktop Auth Buttons */}
+          <div className="hidden md:flex items-center space-x-reverse space-x-4">
+            {user ? (
+              <div className="flex items-center space-x-reverse space-x-4">
+                <div className="flex items-center space-x-reverse space-x-2">
+                  <User className="w-4 h-4" />
+                  <span className="text-sm text-gray-700">{user.name}</span>
+                </div>
+                <Button variant="outline" size="sm" onClick={handleLogout}>
+                  <LogOut className="w-4 h-4 ml-2" />
+                  تسجيل الخروج
                 </Button>
               </div>
             ) : (
               <>
                 <Link to="/login">
-                  <Button variant="outline" size="sm">تسجيل الدخول</Button>
+                  <Button variant="outline">تسجيل الدخول</Button>
                 </Link>
-                <Link to="/register">
-                  <Button size="sm" className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
-                    ابدأ مجاناً
-                  </Button>
+                <Link to="/login">
+                  <Button>ابدأ الآن</Button>
                 </Link>
               </>
             )}
@@ -87,48 +79,79 @@ export const Header = () => {
               size="sm"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
             >
-              {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </Button>
           </div>
         </div>
 
         {/* Mobile Navigation */}
         {isMenuOpen && (
-          <div className="md:hidden py-4 border-t border-gray-100">
-            <nav className="flex flex-col space-y-4">
-              <a href="#services" className="text-gray-700 hover:text-blue-600 transition-colors">الخدمات</a>
-              <Link to="/templates" className="text-gray-700 hover:text-blue-600 transition-colors">القوالب</Link>
-              <a href="#features" className="text-gray-700 hover:text-blue-600 transition-colors">المميزات</a>
-              <a href="#pricing" className="text-gray-700 hover:text-blue-600 transition-colors">الأسعار</a>
-              <div className="flex flex-col space-y-2 pt-4 border-t border-gray-100">
-                {currentUser ? (
-                  <>
-                    <Link to="/dashboard">
-                      <Button variant="outline" size="sm" className="w-full">
-                        لوحة التحكم
-                      </Button>
-                    </Link>
-                    <Button variant="ghost" size="sm" onClick={handleLogout} className="w-full">
+          <div className="md:hidden">
+            <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 border-t">
+              <Link
+                to="/#features"
+                className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-purple-600"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                المميزات
+              </Link>
+              <Link
+                to="/#services"
+                className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-purple-600"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                خدماتنا
+              </Link>
+              <Link
+                to="/#templates"
+                className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-purple-600"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                قوالب
+              </Link>
+              <Link
+                to="/#pricing"
+                className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-purple-600"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                الأسعار
+              </Link>
+              {user && (
+                <Link
+                  to="/dashboard"
+                  className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-purple-600"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  لوحة التحكم
+                </Link>
+              )}
+              <div className="border-t pt-4">
+                {user ? (
+                  <div className="space-y-2">
+                    <div className="px-3 py-2 text-sm text-gray-700">
+                      مرحباً، {user.name}
+                    </div>
+                    <Button variant="outline" size="sm" onClick={handleLogout} className="w-full">
                       تسجيل الخروج
                     </Button>
-                  </>
+                  </div>
                 ) : (
-                  <>
-                    <Link to="/login">
-                      <Button variant="outline" size="sm" className="w-full">تسجيل الدخول</Button>
+                  <div className="space-y-2">
+                    <Link to="/login" onClick={() => setIsMenuOpen(false)}>
+                      <Button variant="outline" className="w-full">تسجيل الدخول</Button>
                     </Link>
-                    <Link to="/register">
-                      <Button size="sm" className="bg-gradient-to-r from-blue-600 to-purple-600 w-full">
-                        ابدأ مجاناً
-                      </Button>
+                    <Link to="/login" onClick={() => setIsMenuOpen(false)}>
+                      <Button className="w-full">ابدأ الآن</Button>
                     </Link>
-                  </>
+                  </div>
                 )}
               </div>
-            </nav>
+            </div>
           </div>
         )}
       </div>
     </header>
   );
 };
+
+export default Header;
