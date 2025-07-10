@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,7 +15,7 @@ import {
   Eye
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { authService, Project } from "@/services/authService";
+import { authService, type Project } from "@/services/authService";
 import { useToast } from "@/hooks/use-toast";
 
 const Dashboard = () => {
@@ -64,7 +63,7 @@ const Dashboard = () => {
   const handleCreateProject = async (type: 'travel' | 'cv' | 'logo' | 'social') => {
     const projectNames = {
       travel: "مشروع سفر جديد",
-      cv: "سيرة ذاتية جديدة",
+      cv: "سيرة ذاتية جديدة", 
       logo: "شعار جديد",
       social: "منشور اجتماعي جديد"
     };
@@ -84,9 +83,13 @@ const Dashboard = () => {
       
       // التوجه إلى المحرر المناسب
       if (type === 'travel') {
-        navigate('/travel-ad-editor');
+        navigate('/travel-editor');
       } else if (type === 'cv') {
         navigate('/cv-editor');
+      } else if (type === 'logo') {
+        navigate('/logo-editor');
+      } else if (type === 'social') {
+        navigate('/social-editor');
       }
     } else {
       toast({
@@ -348,9 +351,13 @@ const Dashboard = () => {
                         className="flex-1"
                         onClick={() => {
                           if (project.type === 'travel') {
-                            navigate('/travel-ad-editor');
+                            navigate('/travel-editor');
                           } else if (project.type === 'cv') {
                             navigate('/cv-editor');
+                          } else if (project.type === 'logo') {
+                            navigate('/logo-editor');
+                          } else if (project.type === 'social') {
+                            navigate('/social-editor');
                           }
                         }}
                       >
@@ -393,7 +400,7 @@ const Dashboard = () => {
                     </div>
                     <CardTitle className="text-lg">{template.name}</CardTitle>
                     <CardDescription>
-                      تم الإنشاء: {new Date(template.createdAt).toLocaleDateString('ar-SA')}
+                      تم الإنشاء: {new Date(template.created_at).toLocaleDateString('ar-SA')}
                     </CardDescription>
                   </CardHeader>
                   

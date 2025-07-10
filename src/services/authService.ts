@@ -18,6 +18,18 @@ export interface RegisterCredentials {
   password: string;
 }
 
+export interface Project {
+  id: string;
+  user_id: string;
+  name: string;
+  type: 'travel' | 'cv' | 'logo' | 'social';
+  status: string;
+  data: any;
+  downloads: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 class AuthService {
   private currentUser: User | null = null;
 
@@ -52,6 +64,18 @@ class AuthService {
         credentials.password, 
         credentials.name
       );
+      
+      if (result.success && result.user) {
+        this.currentUser = {
+          id: result.user.id,
+          email: result.user.email || '',
+          name: result.user.user_metadata?.full_name || credentials.name,
+        };
+        
+        localStorage.setItem('user', JSON.stringify(this.currentUser));
+        
+        return { success: true, user: this.currentUser };
+      }
       
       return { success: result.success, error: result.error };
     } catch (error: any) {
@@ -116,6 +140,29 @@ class AuthService {
 
   async getUserStats() {
     return await supabaseService.getUserStats();
+  }
+
+  // CV methods
+  async saveCVData(cvData: any) {
+    return await supabaseService.saveCVData(cvData);
+  }
+
+  async getCVData() {
+    return await supabaseService.getCVData();
+  }
+
+  // Templates methods
+  async getTemplates() {
+    return await supabaseService.getTemplates();
+  }
+
+  async saveTemplate(templateData: {
+    name: string;
+    type: string;
+    category: string;
+    data: any;
+  }) {
+    return await supabaseService.saveTemplate(templateData);
   }
 }
 
