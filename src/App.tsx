@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -13,6 +12,8 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
 import CVEditor from "./pages/CVEditor";
+import LogoEditor from "./pages/LogoEditor";
+import SocialMediaEditor from "./pages/SocialMediaEditor";
 
 const queryClient = new QueryClient();
 
@@ -35,6 +36,16 @@ const App = () => (
           <Route path="/travel-ad-editor" element={
             <ProtectedRoute>
               <TravelAdEditor />
+            </ProtectedRoute>
+          } />
+          <Route path="/logo-editor" element={
+            <ProtectedRoute>
+              <LogoEditor />
+            </ProtectedRoute>
+          } />
+          <Route path="/social-media-editor" element={
+            <ProtectedRoute>
+              <SocialMediaEditor />
             </ProtectedRoute>
           } />
           <Route path="/cv-editor" element={
