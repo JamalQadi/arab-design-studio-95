@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -324,7 +325,7 @@ const Dashboard = () => {
                     </div>
                     <CardTitle className="text-lg">{project.name}</CardTitle>
                     <CardDescription>
-                      آخر تعديل: {new Date(project.updatedAt).toLocaleDateString('ar-SA')}
+                      آخر تعديل: {new Date(project.updated_at).toLocaleDateString('ar-SA')}
                     </CardDescription>
                   </CardHeader>
                   
