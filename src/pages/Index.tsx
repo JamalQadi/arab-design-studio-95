@@ -15,7 +15,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-white" dir="rtl">
       <Header />
-      <Hero onCreateProject={() => setIsCreateModalOpen(true)} />
+      <Hero />
       <Features />
       <Services />
       <Templates />

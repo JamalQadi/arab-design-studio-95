@@ -1,4 +1,3 @@
-
 import { supabaseService } from './supabaseService';
 
 export interface User {
@@ -26,8 +25,8 @@ export interface Project {
   status: string;
   data: any;
   downloads: number;
-  createdAt: string;
-  updatedAt: string;
+  created_at: string;
+  updated_at: string;
 }
 
 class AuthService {

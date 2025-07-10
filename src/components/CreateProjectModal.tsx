@@ -4,17 +4,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { authService } from "@/services/authService";
 import { useToast } from "@/hooks/use-toast";
 
 interface CreateProjectModalProps {
-  onProjectCreated: () => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
-export const CreateProjectModal = ({ onProjectCreated }: CreateProjectModalProps) => {
-  const [isOpen, setIsOpen] = useState(false);
+export const CreateProjectModal = ({ open, onOpenChange }: CreateProjectModalProps) => {
   const [projectName, setProjectName] = useState("");
   const [projectType, setProjectType] = useState<'travel' | 'cv' | 'logo' | 'social'>('travel');
   const [loading, setLoading] = useState(false);
@@ -43,10 +42,9 @@ export const CreateProjectModal = ({ onProjectCreated }: CreateProjectModalProps
           title: "تم إنشاء المشروع",
           description: "تم إنشاء المشروع بنجاح",
         });
-        setIsOpen(false);
+        onOpenChange(false);
         setProjectName("");
         setProjectType('travel');
-        onProjectCreated();
       } else {
         toast({
           title: "خطأ",
@@ -66,13 +64,7 @@ export const CreateProjectModal = ({ onProjectCreated }: CreateProjectModalProps
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button>
-          <Plus className="w-4 h-4 ml-2" />
-          مشروع جديد
-        </Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>إنشاء مشروع جديد</DialogTitle>
@@ -107,7 +99,7 @@ export const CreateProjectModal = ({ onProjectCreated }: CreateProjectModalProps
             <Button onClick={handleCreateProject} disabled={loading} className="flex-1">
               {loading ? "جاري الإنشاء..." : "إنشاء المشروع"}
             </Button>
-            <Button variant="outline" onClick={() => setIsOpen(false)} className="flex-1">
+            <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
               إلغاء
             </Button>
           </div>
