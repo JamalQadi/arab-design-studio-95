@@ -69,6 +69,29 @@ export const SocialToolbox = ({ onAddElement }: SocialToolboxProps) => {
     });
   };
 
+  const addImagePlaceholder = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        const url = URL.createObjectURL(file);
+        onAddElement({
+          id: `image-${crypto.randomUUID()}`,
+          type: 'image',
+          content: url,
+          x: 75,
+          y: 75,
+          width: 150,
+          height: 150,
+          rotation: 0
+        });
+      }
+    };
+    input.click();
+  };
+
   const textTools = [
     { name: "عنوان رئيسي", action: () => addTextElement('headline'), icon: Type },
     { name: "وصف", action: () => addTextElement('description'), icon: Type },
@@ -84,21 +107,6 @@ export const SocialToolbox = ({ onAddElement }: SocialToolboxProps) => {
     { name: "حفظ", action: () => addSocialElement('bookmark'), icon: Bookmark }
   ];
 
-  const addImagePlaceholder = () => {
-    onAddElement({
-      id: `image-${crypto.randomUUID()}`,
-      type: 'text',
-      content: '🖼️',
-      x: 75,
-      y: 75,
-      width: 150,
-      height: 150,
-      rotation: 0,
-      fontSize: 64,
-      color: '#FFFFFF'
-    });
-  };
-
   return (
     <div className="p-4">
       <h3 className="font-semibold text-gray-900 mb-4">أدوات التواصل</h3>
@@ -110,7 +118,7 @@ export const SocialToolbox = ({ onAddElement }: SocialToolboxProps) => {
           <Button
             key={index}
             variant="ghost"
-            className="w-full justify-start text-right"
+            className="w-full justify-start text-right hover:bg-gray-100"
             size="sm"
             onClick={tool.action}
           >
@@ -131,7 +139,7 @@ export const SocialToolbox = ({ onAddElement }: SocialToolboxProps) => {
               key={index}
               variant="outline"
               size="sm"
-              className="aspect-square p-0 text-xs"
+              className="aspect-square p-0 text-xs hover:bg-gray-100"
               title={icon.name}
               onClick={icon.action}
             >
@@ -150,16 +158,26 @@ export const SocialToolbox = ({ onAddElement }: SocialToolboxProps) => {
           <Button
             variant="outline"
             size="sm"
-            className="w-full justify-start"
+            className="w-full justify-start hover:bg-gray-100"
             onClick={addImagePlaceholder}
           >
             <Image className="w-4 h-4 ml-2" />
             إضافة صورة
           </Button>
-          <Button variant="outline" size="sm" className="w-full justify-start">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="w-full justify-start hover:bg-gray-100"
+            onClick={() => console.log('إضافة فيديو')}
+          >
             🎬 إضافة فيديو
           </Button>
-          <Button variant="outline" size="sm" className="w-full justify-start">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="w-full justify-start hover:bg-gray-100"
+            onClick={() => console.log('إضافة صوت')}
+          >
             🎵 إضافة صوت
           </Button>
         </div>
@@ -171,16 +189,36 @@ export const SocialToolbox = ({ onAddElement }: SocialToolboxProps) => {
       <div>
         <h4 className="font-medium text-gray-700 mb-3">عناصر خاصة</h4>
         <div className="space-y-2">
-          <Button variant="outline" size="sm" className="w-full justify-start">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="w-full justify-start hover:bg-gray-100"
+            onClick={() => addTextElement('location')}
+          >
             📍 إضافة موقع
           </Button>
-          <Button variant="outline" size="sm" className="w-full justify-start">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="w-full justify-start hover:bg-gray-100"
+            onClick={() => addTextElement('product')}
+          >
             🏷️ إضافة تاغ منتج
           </Button>
-          <Button variant="outline" size="sm" className="w-full justify-start">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="w-full justify-start hover:bg-gray-100"
+            onClick={() => addTextElement('poll')}
+          >
             📊 إضافة استطلاع
           </Button>
-          <Button variant="outline" size="sm" className="w-full justify-start">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="w-full justify-start hover:bg-gray-100"
+            onClick={() => addTextElement('date')}
+          >
             ⏰ إضافة تاريخ
           </Button>
         </div>
