@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,11 +12,15 @@ import {
   Plus,
   Edit,
   Trash2,
-  Eye
+  Eye,
+  Sparkles
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { authService, type Project } from "@/services/authService";
 import { useToast } from "@/hooks/use-toast";
+import { prebuiltTemplates } from "@/data/prebuiltTemplates";
+import { PrebuiltTemplateCard } from "@/components/PrebuiltTemplateCard";
+import { TemplatePreviewModal } from "@/components/TemplatePreviewModal";
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("projects");
@@ -31,6 +34,8 @@ const Dashboard = () => {
     workingHours: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [previewTemplate, setPreviewTemplate] = useState<any>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -149,6 +154,13 @@ const Dashboard = () => {
       default: return "📋";
     }
   };
+
+  const handlePreviewTemplate = (template: any) => {
+    setPreviewTemplate(template);
+    setIsPreviewOpen(true);
+  };
+
+  const prebuiltTemplatesList = Object.values(prebuiltTemplates);
 
   const currentUser = authService.getCurrentUser();
 
@@ -272,6 +284,7 @@ const Dashboard = () => {
           <nav className="flex space-x-8">
             {[
               { id: "projects", name: "مشاريعي", count: projects.length },
+              { id: "prebuilt-templates", name: "القوالب الجاهزة", count: prebuiltTemplatesList.length },
               { id: "templates", name: "القوالب المحفوظة", count: templates.length },
               { id: "downloads", name: "التحميلات", count: stats.totalDownloads },
             ].map((tab) => (
@@ -380,6 +393,31 @@ const Dashboard = () => {
           </div>
         )}
 
+        {/* Prebuilt Templates Content */}
+        {activeTab === "prebuilt-templates" && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 flex items-center">
+                  <Sparkles className="w-6 h-6 ml-2 text-yellow-500" />
+                  القوالب الجاهزة
+                </h2>
+                <p className="text-gray-600 mt-1">قوالب مكتملة وجاهزة للاستخدام والتعديل</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {prebuiltTemplatesList.map((template, index) => (
+                <PrebuiltTemplateCard
+                  key={index}
+                  template={template}
+                  onPreview={() => handlePreviewTemplate(template)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Templates Content */}
         {activeTab === "templates" && (
           <div className="space-y-6">
@@ -441,6 +479,13 @@ const Dashboard = () => {
           </div>
         )}
       </div>
+
+      {/* Template Preview Modal */}
+      <TemplatePreviewModal
+        isOpen={isPreviewOpen}
+        onClose={() => setIsPreviewOpen(false)}
+        template={previewTemplate}
+      />
     </div>
   );
 };
