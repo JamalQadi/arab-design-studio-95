@@ -19,7 +19,9 @@ const TravelAdEditor = () => {
   const [designData, setDesignData] = useState({
     template: 0,
     elements: [],
-    images: []
+    images: [],
+    size: { width: 800, height: 600 },
+    background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
   });
   const [history, setHistory] = useState<any[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
@@ -105,6 +107,29 @@ const TravelAdEditor = () => {
       elements: [...(designData.elements || []), element]
     };
     handleDesignChange(newData);
+  };
+
+  const handlePrebuiltTemplateSelect = (templateData: any) => {
+    console.log('Loading prebuilt template:', templateData);
+    
+    const newDesignData = {
+      ...designData,
+      elements: templateData.elements || [],
+      size: templateData.size || { width: 800, height: 600 },
+      background: templateData.background || "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+      templateName: templateData.name
+    };
+    
+    setDesignData(newDesignData);
+    saveToHistory(newDesignData);
+    
+    toast({
+      title: "تم تحميل القالب",
+      description: `تم تحميل قالب "${templateData.name}" بنجاح`,
+    });
+
+    // Switch to tools panel after loading template
+    setActivePanel('tools');
   };
 
   return (
@@ -198,6 +223,7 @@ const TravelAdEditor = () => {
                 templates={templates}
                 selectedTemplate={selectedTemplate}
                 onTemplateSelect={setSelectedTemplate}
+                onPrebuiltTemplateSelect={handlePrebuiltTemplateSelect}
               />
             )}
             {activePanel === 'tools' && (
