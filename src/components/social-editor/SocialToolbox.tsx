@@ -28,7 +28,7 @@ export const SocialToolbox = ({ onAddElement }: SocialToolboxProps) => {
 
     const textData = textTypes[type as keyof typeof textTypes] || textTypes.headline;
 
-    onAddElement({
+    const newElement = {
       id: `text-${crypto.randomUUID()}`,
       type: 'text',
       content: textData.content,
@@ -40,7 +40,10 @@ export const SocialToolbox = ({ onAddElement }: SocialToolboxProps) => {
       fontSize: textData.fontSize,
       fontWeight: textData.fontWeight,
       color: textData.color
-    });
+    };
+
+    console.log('Adding text element:', newElement);
+    onAddElement(newElement);
   };
 
   const addSocialElement = (type: string) => {
@@ -55,7 +58,7 @@ export const SocialToolbox = ({ onAddElement }: SocialToolboxProps) => {
       clap: '👏'
     };
 
-    onAddElement({
+    const newElement = {
       id: `social-${crypto.randomUUID()}`,
       type: 'text',
       content: socialElements[type as keyof typeof socialElements] || '❤️',
@@ -66,7 +69,10 @@ export const SocialToolbox = ({ onAddElement }: SocialToolboxProps) => {
       rotation: 0,
       fontSize: 32,
       color: '#FFFFFF'
-    });
+    };
+
+    console.log('Adding social element:', newElement);
+    onAddElement(newElement);
   };
 
   const addImagePlaceholder = () => {
@@ -77,7 +83,7 @@ export const SocialToolbox = ({ onAddElement }: SocialToolboxProps) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (file) {
         const url = URL.createObjectURL(file);
-        onAddElement({
+        const newElement = {
           id: `image-${crypto.randomUUID()}`,
           type: 'image',
           content: url,
@@ -86,7 +92,10 @@ export const SocialToolbox = ({ onAddElement }: SocialToolboxProps) => {
           width: 150,
           height: 150,
           rotation: 0
-        });
+        };
+        
+        console.log('Adding image element:', newElement);
+        onAddElement(newElement);
       }
     };
     input.click();
@@ -120,7 +129,10 @@ export const SocialToolbox = ({ onAddElement }: SocialToolboxProps) => {
             variant="ghost"
             className="w-full justify-start text-right hover:bg-gray-100"
             size="sm"
-            onClick={tool.action}
+            onClick={() => {
+              console.log('Tool clicked:', tool.name);
+              tool.action();
+            }}
           >
             <tool.icon className="w-4 h-4 ml-2" />
             {tool.name}
@@ -141,7 +153,10 @@ export const SocialToolbox = ({ onAddElement }: SocialToolboxProps) => {
               size="sm"
               className="aspect-square p-0 text-xs hover:bg-gray-100"
               title={icon.name}
-              onClick={icon.action}
+              onClick={() => {
+                console.log('Social icon clicked:', icon.name);
+                icon.action();
+              }}
             >
               <icon.icon className="w-4 h-4" />
             </Button>
@@ -159,67 +174,13 @@ export const SocialToolbox = ({ onAddElement }: SocialToolboxProps) => {
             variant="outline"
             size="sm"
             className="w-full justify-start hover:bg-gray-100"
-            onClick={addImagePlaceholder}
+            onClick={() => {
+              console.log('Add image clicked');
+              addImagePlaceholder();
+            }}
           >
             <Image className="w-4 h-4 ml-2" />
             إضافة صورة
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="w-full justify-start hover:bg-gray-100"
-            onClick={() => console.log('إضافة فيديو')}
-          >
-            🎬 إضافة فيديو
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="w-full justify-start hover:bg-gray-100"
-            onClick={() => console.log('إضافة صوت')}
-          >
-            🎵 إضافة صوت
-          </Button>
-        </div>
-      </div>
-
-      <Separator className="my-4" />
-
-      {/* Platform Specific */}
-      <div>
-        <h4 className="font-medium text-gray-700 mb-3">عناصر خاصة</h4>
-        <div className="space-y-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="w-full justify-start hover:bg-gray-100"
-            onClick={() => addTextElement('location')}
-          >
-            📍 إضافة موقع
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="w-full justify-start hover:bg-gray-100"
-            onClick={() => addTextElement('product')}
-          >
-            🏷️ إضافة تاغ منتج
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="w-full justify-start hover:bg-gray-100"
-            onClick={() => addTextElement('poll')}
-          >
-            📊 إضافة استطلاع
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="w-full justify-start hover:bg-gray-100"
-            onClick={() => addTextElement('date')}
-          >
-            ⏰ إضافة تاريخ
           </Button>
         </div>
       </div>

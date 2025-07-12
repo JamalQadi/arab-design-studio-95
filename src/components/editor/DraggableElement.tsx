@@ -47,6 +47,11 @@ export const DraggableElement: React.FC<DraggableElementProps> = ({
   const elementRef = useRef<HTMLDivElement>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
 
+  // تحديث قيمة التحرير عند تغيير المحتوى
+  useEffect(() => {
+    setEditValue(content);
+  }, [content]);
+
   // تحسين إدارة اللمس المزدوج
   const handleTouchEnd = (e: React.TouchEvent) => {
     if (!isEditMode || type !== 'text') return;
@@ -82,9 +87,10 @@ export const DraggableElement: React.FC<DraggableElementProps> = ({
     
     // بدء السحب
     setIsDragging(true);
+    const rect = e.currentTarget.getBoundingClientRect();
     setDragStart({
-      x: e.clientX - x,
-      y: e.clientY - y
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top
     });
     
     console.log('Starting drag for element:', id);
@@ -94,6 +100,7 @@ export const DraggableElement: React.FC<DraggableElementProps> = ({
     if (!isEditMode) return;
     
     const touch = e.touches[0];
+    const rect = e.currentTarget.getBoundingClientRect();
     
     // تحديد العنصر أولاً
     onSelect(id);
@@ -101,8 +108,8 @@ export const DraggableElement: React.FC<DraggableElementProps> = ({
     // بدء السحب
     setIsDragging(true);
     setDragStart({
-      x: touch.clientX - x,
-      y: touch.clientY - y
+      x: touch.clientX - rect.left,
+      y: touch.clientY - rect.top
     });
     
     console.log('Starting touch drag for element:', id);
@@ -112,8 +119,11 @@ export const DraggableElement: React.FC<DraggableElementProps> = ({
   const handleMouseMove = (e: MouseEvent) => {
     if (!isDragging || !isEditMode) return;
     
-    const newX = Math.max(0, Math.min(e.clientX - dragStart.x, window.innerWidth - width));
-    const newY = Math.max(0, Math.min(e.clientY - dragStart.y, window.innerHeight - height));
+    const parentRect = elementRef.current?.parentElement?.getBoundingClientRect();
+    if (!parentRect) return;
+    
+    const newX = Math.max(0, Math.min(e.clientX - parentRect.left - dragStart.x, parentRect.width - width));
+    const newY = Math.max(0, Math.min(e.clientY - parentRect.top - dragStart.y, parentRect.height - height));
     
     onUpdate(id, { x: newX, y: newY });
   };
@@ -123,8 +133,11 @@ export const DraggableElement: React.FC<DraggableElementProps> = ({
     
     e.preventDefault();
     const touch = e.touches[0];
-    const newX = Math.max(0, Math.min(touch.clientX - dragStart.x, window.innerWidth - width));
-    const newY = Math.max(0, Math.min(touch.clientY - dragStart.y, window.innerHeight - height));
+    const parentRect = elementRef.current?.parentElement?.getBoundingClientRect();
+    if (!parentRect) return;
+    
+    const newX = Math.max(0, Math.min(touch.clientX - parentRect.left - dragStart.x, parentRect.width - width));
+    const newY = Math.max(0, Math.min(touch.clientY - parentRect.top - dragStart.y, parentRect.height - height));
     
     onUpdate(id, { x: newX, y: newY });
   };
@@ -150,7 +163,7 @@ export const DraggableElement: React.FC<DraggableElementProps> = ({
         document.removeEventListener('touchend', handleDragEnd);
       };
     }
-  }, [isDragging, dragStart]);
+  }, [isDragging, dragStart, width, height]);
 
   const handleDoubleClick = (e: React.MouseEvent) => {
     if (!isEditMode || type !== 'text') return;
@@ -216,7 +229,7 @@ export const DraggableElement: React.FC<DraggableElementProps> = ({
     <div
       ref={elementRef}
       className={`absolute select-none transition-all duration-200 ${
-        isSelected && isEditMode ? 'ring-2 ring-blue-500 ring-opacity-75 shadow-lg' : ''
+        isSelected && isEditMode ? 'ring-2 ring-blue-500 ring-opacity-75 shadow-lg z-50' : 'z-10'
       } ${isEditMode ? 'cursor-move hover:ring-1 hover:ring-blue-300' : 'cursor-default'}`}
       style={{
         left: x,
@@ -224,7 +237,6 @@ export const DraggableElement: React.FC<DraggableElementProps> = ({
         width: width,
         height: height,
         transform: `rotate(${rotation}deg)`,
-        zIndex: isSelected ? 1000 : isDragging ? 999 : 10,
         touchAction: 'none'
       }}
       onMouseDown={handleMouseDown}
@@ -274,7 +286,7 @@ export const DraggableElement: React.FC<DraggableElementProps> = ({
         />
       )}
 
-      {/* أزرار التحكم - تحسين للهاتف */}
+      {/* أزرار التحكم - تظهر فقط عند التحديد */}
       {isSelected && isEditMode && !isEditing && (
         <div className="absolute -top-14 left-0 flex gap-1 bg-black bg-opacity-90 rounded-lg px-2 py-1 z-50 shadow-lg">
           <Button

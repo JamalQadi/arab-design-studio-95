@@ -1,5 +1,5 @@
 
-import { forwardRef, useState, useCallback } from "react";
+import { forwardRef, useState, useCallback, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,12 +19,21 @@ export const SocialCanvas = forwardRef<HTMLDivElement, SocialCanvasProps>(
     const [zoom, setZoom] = useState(80);
     const [isPreview, setIsPreview] = useState(false);
     const [elements, setElements] = useState(designData.elements || []);
+    const [selectedElement, setSelectedElement] = useState<string | null>(null);
 
     const handleZoomIn = () => setZoom(Math.min(zoom + 20, 150));
     const handleZoomOut = () => setZoom(Math.max(zoom - 20, 40));
     const resetView = () => setZoom(80);
 
+    // تحديث العناصر عند تغيير designData
+    useEffect(() => {
+      if (designData.elements && Array.isArray(designData.elements)) {
+        setElements(designData.elements);
+      }
+    }, [designData.elements]);
+
     const updateElement = useCallback((id: string, updates: any) => {
+      console.log('Updating element:', id, updates);
       const updatedElements = elements.map(el => 
         el.id === id ? { ...el, ...updates } : el
       );
@@ -33,10 +42,21 @@ export const SocialCanvas = forwardRef<HTMLDivElement, SocialCanvasProps>(
     }, [elements, designData, onDesignChange]);
 
     const deleteElement = useCallback((id: string) => {
+      console.log('Deleting element:', id);
       const updatedElements = elements.filter(el => el.id !== id);
       setElements(updatedElements);
+      setSelectedElement(null);
       onDesignChange({ ...designData, elements: updatedElements });
     }, [elements, designData, onDesignChange]);
+
+    const handleCanvasClick = (e: React.MouseEvent) => {
+      if (isPreview) return;
+      
+      // إلغاء تحديد العنصر عند النقر على مساحة فارغة
+      if (e.target === e.currentTarget) {
+        setSelectedElement(null);
+      }
+    };
 
     const currentTemplate = templates[selectedTemplate] || templates[0];
     const canvasSize = designData.size || { width: 1080, height: 1080 };
@@ -104,12 +124,13 @@ export const SocialCanvas = forwardRef<HTMLDivElement, SocialCanvasProps>(
                 <CardContent className="p-0">
                   <div 
                     ref={ref}
-                    className="relative overflow-hidden"
+                    className="relative overflow-hidden cursor-crosshair"
                     style={{
                       width: Math.min(canvasSize.width, 600),
                       height: Math.min(canvasSize.height * (600 / canvasSize.width), 600),
                       background: getPlatformGradient()
                     }}
+                    onClick={handleCanvasClick}
                   >
                     {/* Platform-specific overlay */}
                     <div className="absolute inset-0 bg-black bg-opacity-10"></div>
@@ -117,7 +138,7 @@ export const SocialCanvas = forwardRef<HTMLDivElement, SocialCanvasProps>(
                     {/* Grid for alignment (only in edit mode) */}
                     {!isPreview && (
                       <div 
-                        className="absolute inset-0 opacity-10"
+                        className="absolute inset-0 opacity-10 pointer-events-none"
                         style={{
                           backgroundImage: `
                             linear-gradient(rgba(255,255,255,0.3) 1px, transparent 1px),
@@ -135,15 +156,15 @@ export const SocialCanvas = forwardRef<HTMLDivElement, SocialCanvasProps>(
                         {...element}
                         onUpdate={updateElement}
                         onDelete={deleteElement}
-                        isSelected={false}
-                        onSelect={() => {}}
+                        isSelected={selectedElement === element.id}
+                        onSelect={setSelectedElement}
                         isEditMode={!isPreview}
                       />
                     ))}
 
                     {/* Default Content */}
                     {elements.length === 0 && (
-                      <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                         <div className="text-center p-8 text-white">
                           <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-white bg-opacity-20 flex items-center justify-center">
                             <span className="text-3xl">
@@ -157,7 +178,7 @@ export const SocialCanvas = forwardRef<HTMLDivElement, SocialCanvasProps>(
                             {currentTemplate?.name || 'منشور جديد'}
                           </h2>
                           <p className="text-white text-opacity-80">
-                            ابدأ بإضافة النصوص والصور
+                            ابدأ بإضافة النصوص والصور من الأدوات
                           </p>
                         </div>
                       </div>
