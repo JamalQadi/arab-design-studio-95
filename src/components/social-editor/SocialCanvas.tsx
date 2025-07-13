@@ -1,4 +1,3 @@
-
 import { forwardRef, useState, useCallback, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,9 +20,28 @@ export const SocialCanvas = forwardRef<HTMLDivElement, SocialCanvasProps>(
     const [elements, setElements] = useState(designData.elements || []);
     const [selectedElement, setSelectedElement] = useState<string | null>(null);
 
+    // Auto-adjust zoom for mobile devices
+    useEffect(() => {
+      const handleResize = () => {
+        const isMobile = window.innerWidth < 768;
+        if (isMobile && zoom > 60) {
+          setZoom(50);
+        } else if (!isMobile && zoom < 60) {
+          setZoom(80);
+        }
+      };
+
+      handleResize();
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
+    }, [zoom]);
+
     const handleZoomIn = () => setZoom(Math.min(zoom + 20, 150));
     const handleZoomOut = () => setZoom(Math.max(zoom - 20, 40));
-    const resetView = () => setZoom(80);
+    const resetView = () => {
+      const isMobile = window.innerWidth < 768;
+      setZoom(isMobile ? 50 : 80);
+    };
 
     // تحديث العناصر عند تغيير designData
     useEffect(() => {
@@ -79,24 +97,24 @@ export const SocialCanvas = forwardRef<HTMLDivElement, SocialCanvasProps>(
     return (
       <div className="flex-1 flex flex-col">
         {/* Canvas Controls */}
-        <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-200">
-          <div className="flex items-center space-x-3">
-            <span className="text-sm text-gray-600">التكبير: {zoom}%</span>
+        <div className="flex items-center justify-between px-2 sm:px-4 py-2 sm:py-3 bg-white border-b border-gray-200">
+          <div className="flex items-center space-x-2 sm:space-x-3">
+            <span className="text-xs sm:text-sm text-gray-600">التكبير: {zoom}%</span>
             <div className="flex items-center space-x-1">
               <Button variant="ghost" size="sm" onClick={handleZoomOut}>
-                <ZoomOut className="w-4 h-4" />
+                <ZoomOut className="w-3 h-3 sm:w-4 sm:h-4" />
               </Button>
               <Button variant="ghost" size="sm" onClick={handleZoomIn}>
-                <ZoomIn className="w-4 h-4" />
+                <ZoomIn className="w-3 h-3 sm:w-4 sm:h-4" />
               </Button>
               <Button variant="ghost" size="sm" onClick={resetView}>
-                <Maximize className="w-4 h-4" />
+                <Maximize className="w-3 h-3 sm:w-4 sm:h-4" />
               </Button>
             </div>
           </div>
           
           <div className="flex items-center space-x-2">
-            <Badge variant="outline" className="capitalize">
+            <Badge variant="outline" className="capitalize text-xs sm:text-sm">
               {platform}: {canvasSize.width}×{canvasSize.height}
             </Badge>
             <Button 
@@ -104,14 +122,14 @@ export const SocialCanvas = forwardRef<HTMLDivElement, SocialCanvasProps>(
               size="sm" 
               onClick={() => setIsPreview(!isPreview)}
             >
-              <Eye className="w-4 h-4 ml-2" />
-              {isPreview ? "تحرير" : "معاينة"}
+              <Eye className="w-3 h-3 sm:w-4 sm:h-4 sm:ml-2" />
+              <span className="hidden sm:inline">{isPreview ? "تحرير" : "معاينة"}</span>
             </Button>
           </div>
         </div>
 
         {/* Canvas Area */}
-        <div className="flex-1 overflow-auto p-4 lg:p-8 bg-gray-100">
+        <div className="flex-1 overflow-auto p-2 sm:p-4 lg:p-8 bg-gray-100">
           <div className="flex justify-center">
             <div className="relative">
               <Card 
@@ -135,7 +153,6 @@ export const SocialCanvas = forwardRef<HTMLDivElement, SocialCanvasProps>(
                     {/* Platform-specific overlay */}
                     <div className="absolute inset-0 bg-black bg-opacity-10"></div>
 
-                    {/* Grid for alignment (only in edit mode) */}
                     {!isPreview && (
                       <div 
                         className="absolute inset-0 opacity-10 pointer-events-none"
@@ -165,19 +182,19 @@ export const SocialCanvas = forwardRef<HTMLDivElement, SocialCanvasProps>(
                     {/* Default Content */}
                     {elements.length === 0 && (
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <div className="text-center p-8 text-white">
-                          <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-white bg-opacity-20 flex items-center justify-center">
-                            <span className="text-3xl">
+                        <div className="text-center p-4 sm:p-8 text-white">
+                          <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 rounded-full bg-white bg-opacity-20 flex items-center justify-center">
+                            <span className="text-2xl sm:text-3xl">
                               {platform === 'instagram' && '📸'}
                               {platform === 'facebook' && '👥'}
                               {platform === 'twitter' && '🐦'}
                               {platform === 'linkedin' && '💼'}
                             </span>
                           </div>
-                          <h2 className="text-2xl font-bold mb-2">
+                          <h2 className="text-xl sm:text-2xl font-bold mb-2">
                             {currentTemplate?.name || 'منشور جديد'}
                           </h2>
-                          <p className="text-white text-opacity-80">
+                          <p className="text-white text-opacity-80 text-sm sm:text-base">
                             ابدأ بإضافة النصوص والصور من الأدوات
                           </p>
                         </div>
@@ -186,7 +203,7 @@ export const SocialCanvas = forwardRef<HTMLDivElement, SocialCanvasProps>(
 
                     {/* Platform watermark */}
                     {isPreview && (
-                      <div className="absolute bottom-4 right-4 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded capitalize">
+                      <div className="absolute bottom-2 sm:bottom-4 right-2 sm:right-4 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded capitalize">
                         {platform}
                       </div>
                     )}

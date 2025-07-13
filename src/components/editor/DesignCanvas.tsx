@@ -40,6 +40,22 @@ export const DesignCanvas = forwardRef<HTMLDivElement, DesignCanvasProps>(
     const [elements, setElements] = useState<DesignElement[]>([]);
     const [selectedElement, setSelectedElement] = useState<string | null>(null);
 
+    // Auto-adjust zoom for mobile devices
+    useEffect(() => {
+      const handleResize = () => {
+        const isMobile = window.innerWidth < 768;
+        if (isMobile && zoom > 80) {
+          setZoom(60);
+        } else if (!isMobile && zoom < 80) {
+          setZoom(100);
+        }
+      };
+
+      handleResize();
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
+    }, [zoom]);
+
     const handleZoomIn = () => {
       const newZoom = Math.min(zoom + 25, 200);
       setZoom(newZoom);
@@ -59,7 +75,8 @@ export const DesignCanvas = forwardRef<HTMLDivElement, DesignCanvasProps>(
     };
 
     const handleFit = () => {
-      setZoom(100);
+      const isMobile = window.innerWidth < 768;
+      setZoom(isMobile ? 60 : 100);
       setRotation(0);
       console.log('Canvas reset to fit');
     };
@@ -148,11 +165,9 @@ export const DesignCanvas = forwardRef<HTMLDivElement, DesignCanvasProps>(
       const content = getTemplateContent(template);
       const icon = getCategoryIcon(template.category);
       
-      // Use crypto.randomUUID() for better unique IDs
       const generateId = () => crypto.randomUUID();
       
       const defaultElements: DesignElement[] = [
-        // العنوان الرئيسي
         {
           id: `title-${generateId()}`,
           type: 'text',
@@ -165,7 +180,6 @@ export const DesignCanvas = forwardRef<HTMLDivElement, DesignCanvasProps>(
           fontSize: 32,
           color: '#ffffff'
         },
-        // العنوان الفرعي
         {
           id: `subtitle-${generateId()}`,
           type: 'text',
@@ -178,7 +192,6 @@ export const DesignCanvas = forwardRef<HTMLDivElement, DesignCanvasProps>(
           fontSize: 18,
           color: '#ffffff'
         },
-        // الأيقونة العلوية
         {
           id: `icon-top-${generateId()}`,
           type: 'text',
@@ -191,7 +204,6 @@ export const DesignCanvas = forwardRef<HTMLDivElement, DesignCanvasProps>(
           fontSize: 64,
           color: '#ffffff'
         },
-        // النص المركزي
         {
           id: `center-text-${generateId()}`,
           type: 'text',
@@ -204,7 +216,6 @@ export const DesignCanvas = forwardRef<HTMLDivElement, DesignCanvasProps>(
           fontSize: 28,
           color: '#ffffff'
         },
-        // النص المركزي الفرعي
         {
           id: `center-subtext-${generateId()}`,
           type: 'text',
@@ -217,7 +228,6 @@ export const DesignCanvas = forwardRef<HTMLDivElement, DesignCanvasProps>(
           fontSize: 16,
           color: '#ffffff'
         },
-        // الأيقونة المركزية
         {
           id: `icon-center-${generateId()}`,
           type: 'text',
@@ -230,7 +240,6 @@ export const DesignCanvas = forwardRef<HTMLDivElement, DesignCanvasProps>(
           fontSize: 48,
           color: '#ffffff'
         },
-        // اسم المكتب
         {
           id: `footer-title-${generateId()}`,
           type: 'text',
@@ -243,7 +252,6 @@ export const DesignCanvas = forwardRef<HTMLDivElement, DesignCanvasProps>(
           fontSize: 20,
           color: '#ffffff'
         },
-        // رقم التليفون
         {
           id: `footer-contact-${generateId()}`,
           type: 'text',
@@ -256,7 +264,6 @@ export const DesignCanvas = forwardRef<HTMLDivElement, DesignCanvasProps>(
           fontSize: 16,
           color: '#ffffff'
         },
-        // العنوان
         {
           id: `footer-location-${generateId()}`,
           type: 'text',
@@ -269,7 +276,6 @@ export const DesignCanvas = forwardRef<HTMLDivElement, DesignCanvasProps>(
           fontSize: 14,
           color: '#ffffff'
         },
-        // الأيقونة السفلية
         {
           id: `icon-bottom-${generateId()}`,
           type: 'text',
@@ -294,9 +300,7 @@ export const DesignCanvas = forwardRef<HTMLDivElement, DesignCanvasProps>(
       const x = (e.clientX - rect.left) / (zoom / 100);
       const y = (e.clientY - rect.top) / (zoom / 100);
       
-      // إلغاء تحديد العنصر عند النقر على مساحة فارغة
       setSelectedElement(null);
-      
       console.log('Canvas clicked at:', { x, y, zoom });
     };
 
@@ -322,7 +326,6 @@ export const DesignCanvas = forwardRef<HTMLDivElement, DesignCanvasProps>(
       
       console.log('Added text element:', newElement);
       
-      // تحديث البيانات
       if (onDesignChange) {
         onDesignChange({
           ...designData,
@@ -352,7 +355,6 @@ export const DesignCanvas = forwardRef<HTMLDivElement, DesignCanvasProps>(
       
       console.log('Added image element:', newElement);
       
-      // تحديث البيانات
       if (onDesignChange) {
         onDesignChange({
           ...designData,
@@ -370,7 +372,6 @@ export const DesignCanvas = forwardRef<HTMLDivElement, DesignCanvasProps>(
       
       console.log('Updated element:', id, updates);
       
-      // تحديث البيانات
       if (onDesignChange) {
         onDesignChange({
           ...designData,
@@ -387,7 +388,6 @@ export const DesignCanvas = forwardRef<HTMLDivElement, DesignCanvasProps>(
       
       console.log('Deleted element:', id);
       
-      // تحديث البيانات
       if (onDesignChange) {
         onDesignChange({
           ...designData,
@@ -397,20 +397,17 @@ export const DesignCanvas = forwardRef<HTMLDivElement, DesignCanvasProps>(
       }
     }, [elements, designData, onDesignChange, selectedTemplate]);
 
-    // تحميل العناصر من البيانات أو إنشاء عناصر افتراضية
     useEffect(() => {
       if (designData?.elements && Array.isArray(designData.elements) && designData.elements.length > 0) {
         console.log('Loading elements from designData:', designData.elements);
         setElements(designData.elements);
       } else {
-        // إنشاء عناصر افتراضية للقالب
         const currentTemplate = templates[selectedTemplate] || templates[0];
         if (currentTemplate) {
           const defaultElements = createDefaultTemplateElements(currentTemplate);
           console.log('Creating default template elements:', defaultElements);
           setElements(defaultElements);
           
-          // تحديث البيانات بالعناصر الافتراضية
           if (onDesignChange) {
             onDesignChange({
               ...designData,
@@ -422,7 +419,6 @@ export const DesignCanvas = forwardRef<HTMLDivElement, DesignCanvasProps>(
       }
     }, [selectedTemplate, templates, createDefaultTemplateElements]);
 
-    // تحميل الصور المرفوعة كعناصر
     useEffect(() => {
       if (designData?.images && Array.isArray(designData.images)) {
         const imageElements = designData.images.map((image: any, index: number) => ({
@@ -453,21 +449,21 @@ export const DesignCanvas = forwardRef<HTMLDivElement, DesignCanvasProps>(
     return (
       <div className="flex-1 flex flex-col">
         {/* Canvas Controls */}
-        <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-200">
-          <div className="flex items-center space-x-3">
-            <span className="text-sm text-gray-600">التكبير: {zoom}%</span>
+        <div className="flex items-center justify-between px-2 sm:px-4 py-2 sm:py-3 bg-white border-b border-gray-200">
+          <div className="flex items-center space-x-2 sm:space-x-3">
+            <span className="text-xs sm:text-sm text-gray-600">التكبير: {zoom}%</span>
             <div className="flex items-center space-x-1">
               <Button variant="ghost" size="sm" onClick={handleZoomOut} title="تصغير">
-                <ZoomOut className="w-4 h-4" />
+                <ZoomOut className="w-3 h-3 sm:w-4 sm:h-4" />
               </Button>
               <Button variant="ghost" size="sm" onClick={handleZoomIn} title="تكبير">
-                <ZoomIn className="w-4 h-4" />
+                <ZoomIn className="w-3 h-3 sm:w-4 sm:h-4" />
               </Button>
-              <Button variant="ghost" size="sm" onClick={handleRotate} title="تدوير">
+              <Button variant="ghost" size="sm" onClick={handleRotate} title="تدوير" className="hidden sm:flex">
                 <RotateCcw className="w-4 h-4" />
               </Button>
               <Button variant="ghost" size="sm" onClick={handleFit} title="ملاءمة">
-                <Maximize className="w-4 h-4" />
+                <Maximize className="w-3 h-3 sm:w-4 sm:h-4" />
               </Button>
             </div>
           </div>
@@ -480,7 +476,7 @@ export const DesignCanvas = forwardRef<HTMLDivElement, DesignCanvasProps>(
         </div>
 
         {/* Canvas Area */}
-        <div className="flex-1 overflow-auto p-4 lg:p-8 bg-gray-100">
+        <div className="flex-1 overflow-auto p-2 sm:p-4 lg:p-8 bg-gray-100">
           <div className="flex justify-center">
             <div className="relative">
               <Card 
@@ -499,7 +495,6 @@ export const DesignCanvas = forwardRef<HTMLDivElement, DesignCanvasProps>(
                       touchAction: 'manipulation'
                     }}
                   >
-                    {/* Draggable Elements - جميع النصوص قابلة للتحرير الآن */}
                     {elements.map((element) => (
                       <DraggableElement
                         key={element.id}
@@ -517,17 +512,17 @@ export const DesignCanvas = forwardRef<HTMLDivElement, DesignCanvasProps>(
             </div>
           </div>
 
-          {/* Quick Actions */}
+          {/* Quick Actions - More responsive layout */}
           {!isPreviewMode && (
-            <div className="flex justify-center mt-6 space-x-4 flex-wrap">
+            <div className="flex justify-center mt-4 sm:mt-6 space-x-2 sm:space-x-4 flex-wrap gap-2">
               <Button 
                 variant="outline" 
                 size="sm" 
                 onClick={addTextElement}
-                className="mb-2"
+                className="flex-1 sm:flex-none min-w-0"
               >
-                <Type className="w-4 h-4 ml-2" />
-                إضافة نص
+                <Type className="w-4 h-4 sm:ml-2" />
+                <span className="hidden sm:inline">إضافة نص</span>
               </Button>
               <Button 
                 variant="outline" 
@@ -545,10 +540,10 @@ export const DesignCanvas = forwardRef<HTMLDivElement, DesignCanvasProps>(
                   };
                   input.click();
                 }}
-                className="mb-2"
+                className="flex-1 sm:flex-none min-w-0"
               >
-                <ImageIcon className="w-4 h-4 ml-2" />
-                إضافة صورة
+                <ImageIcon className="w-4 h-4 sm:ml-2" />
+                <span className="hidden sm:inline">إضافة صورة</span>
               </Button>
             </div>
           )}

@@ -1,7 +1,6 @@
-
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Download, Save, Eye, Undo, Redo } from "lucide-react";
+import { ArrowLeft, Download, Save, Eye, Undo, Redo, Menu, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { DesignCanvas } from "@/components/editor/DesignCanvas";
 import { TemplatesPanel } from "@/components/editor/TemplatesPanel";
@@ -11,11 +10,14 @@ import { LayersPanel } from "@/components/editor/LayersPanel";
 import { ExportModal } from "@/components/ExportModal";
 import { authService } from "@/services/authService";
 import { useToast } from "@/hooks/use-toast";
+import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
 
 const TravelAdEditor = () => {
   const [selectedTemplate, setSelectedTemplate] = useState(0);
   const [activePanel, setActivePanel] = useState<'templates' | 'tools' | 'properties' | 'layers'>('templates');
   const [isPreviewMode, setIsPreviewMode] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [designData, setDesignData] = useState({
     template: 0,
     elements: [],
@@ -128,16 +130,91 @@ const TravelAdEditor = () => {
       description: `تم تحميل قالب "${templateData.name}" بنجاح`,
     });
 
-    // Switch to tools panel after loading template
     setActivePanel('tools');
   };
+
+  const SidebarContent = () => (
+    <>
+      {/* Panel Tabs */}
+      <div className="flex border-b border-gray-200 overflow-x-auto">
+        {[
+          { id: 'templates', label: 'القوالب', icon: '🎨' },
+          { id: 'tools', label: 'الأدوات', icon: '🛠️' },
+          { id: 'properties', label: 'الخصائص', icon: '⚙️' },
+          { id: 'layers', label: 'الطبقات', icon: '📋' }
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActivePanel(tab.id as any)}
+            className={`flex-1 min-w-[80px] py-3 px-2 text-sm font-medium border-b-2 transition-colors flex flex-col items-center ${
+              activePanel === tab.id
+                ? 'border-green-500 text-green-600 bg-green-50'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            <span className="text-lg mb-1">{tab.icon}</span>
+            <span className="whitespace-nowrap">{tab.label}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Panel Content */}
+      <div className="flex-1 overflow-y-auto">
+        {activePanel === 'templates' && (
+          <TemplatesPanel 
+            templates={templates}
+            selectedTemplate={selectedTemplate}
+            onTemplateSelect={setSelectedTemplate}
+            onPrebuiltTemplateSelect={handlePrebuiltTemplateSelect}
+          />
+        )}
+        {activePanel === 'tools' && (
+          <ToolboxPanel onAddElement={handleAddElement} />
+        )}
+        {activePanel === 'properties' && <PropertiesPanel />}
+        {activePanel === 'layers' && <LayersPanel />}
+      </div>
+    </>
+  );
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
       <header className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="flex items-center justify-between px-4 h-14">
-          <div className="flex items-center space-x-3">
+        <div className="flex items-center justify-between px-2 sm:px-4 h-14">
+          <div className="flex items-center space-x-2 sm:space-x-3">
+            {/* Mobile Menu Toggle */}
+            <Drawer open={isMobileSidebarOpen} onOpenChange={setIsMobileSidebarOpen}>
+              <DrawerTrigger asChild>
+                <Button variant="ghost" size="sm" className="md:hidden">
+                  <Menu className="w-4 h-4" />
+                </Button>
+              </DrawerTrigger>
+              <DrawerContent className="max-h-[85vh]">
+                <div className="p-4 h-full">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-semibold">أدوات التصميم</h2>
+                    <Button variant="ghost" size="sm" onClick={() => setIsMobileSidebarOpen(false)}>
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  <div className="h-full flex flex-col">
+                    <SidebarContent />
+                  </div>
+                </div>
+              </DrawerContent>
+            </Drawer>
+
+            {/* Desktop Sidebar Toggle */}
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="hidden md:flex"
+              onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            >
+              {isSidebarCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+            </Button>
+
             <Link to="/">
               <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
                 <ArrowLeft className="w-4 h-4 ml-2" />
@@ -145,15 +222,16 @@ const TravelAdEditor = () => {
               </Button>
             </Link>
             <div className="h-4 w-px bg-gray-300 hidden sm:block" />
-            <h1 className="text-lg font-semibold text-gray-900 hidden sm:block">محرر الإعلانات السياحية</h1>
+            <h1 className="text-sm sm:text-lg font-semibold text-gray-900 hidden sm:block">محرر الإعلانات السياحية</h1>
           </div>
           
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-1 sm:space-x-2">
             <Button
               variant="outline"
               size="sm"
               onClick={handleUndo}
               disabled={historyIndex <= 0}
+              className="hidden sm:flex"
             >
               <Undo className="w-4 h-4" />
             </Button>
@@ -162,6 +240,7 @@ const TravelAdEditor = () => {
               size="sm"
               onClick={handleRedo}
               disabled={historyIndex >= history.length - 1}
+              className="hidden sm:flex"
             >
               <Redo className="w-4 h-4" />
             </Button>
@@ -170,19 +249,19 @@ const TravelAdEditor = () => {
               size="sm"
               onClick={() => setIsPreviewMode(!isPreviewMode)}
             >
-              <Eye className="w-4 h-4 ml-2" />
-              {isPreviewMode ? "تحرير" : "معاينة"}
+              <Eye className="w-4 h-4 sm:ml-2" />
+              <span className="hidden sm:inline">{isPreviewMode ? "تحرير" : "معاينة"}</span>
             </Button>
             <Button variant="outline" size="sm" onClick={handleSave}>
-              <Save className="w-4 h-4 ml-2" />
-              حفظ
+              <Save className="w-4 h-4 sm:ml-2" />
+              <span className="hidden sm:inline">حفظ</span>
             </Button>
             <ExportModal 
               canvasRef={canvasRef}
               trigger={
                 <Button size="sm" className="bg-gradient-to-r from-green-600 to-emerald-600">
-                  <Download className="w-4 h-4 ml-2" />
-                  تصدير
+                  <Download className="w-4 h-4 sm:ml-2" />
+                  <span className="hidden sm:inline">تصدير</span>
                 </Button>
               }
             />
@@ -191,51 +270,15 @@ const TravelAdEditor = () => {
       </header>
 
       <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar */}
-        <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
-          {/* Panel Tabs */}
-          <div className="flex border-b border-gray-200">
-            {[
-              { id: 'templates', label: 'القوالب', icon: '🎨' },
-              { id: 'tools', label: 'الأدوات', icon: '🛠️' },
-              { id: 'properties', label: 'الخصائص', icon: '⚙️' },
-              { id: 'layers', label: 'الطبقات', icon: '📋' }
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActivePanel(tab.id as any)}
-                className={`flex-1 py-3 px-2 text-sm font-medium border-b-2 transition-colors flex flex-col items-center ${
-                  activePanel === tab.id
-                    ? 'border-green-500 text-green-600 bg-green-50'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                <span className="text-lg mb-1">{tab.icon}</span>
-                <span>{tab.label}</span>
-              </button>
-            ))}
-          </div>
-
-          {/* Panel Content */}
-          <div className="flex-1 overflow-y-auto">
-            {activePanel === 'templates' && (
-              <TemplatesPanel 
-                templates={templates}
-                selectedTemplate={selectedTemplate}
-                onTemplateSelect={setSelectedTemplate}
-                onPrebuiltTemplateSelect={handlePrebuiltTemplateSelect}
-              />
-            )}
-            {activePanel === 'tools' && (
-              <ToolboxPanel onAddElement={handleAddElement} />
-            )}
-            {activePanel === 'properties' && <PropertiesPanel />}
-            {activePanel === 'layers' && <LayersPanel />}
-          </div>
+        {/* Desktop Sidebar */}
+        <div className={`hidden md:flex bg-white border-r border-gray-200 flex-col transition-all duration-300 ${
+          isSidebarCollapsed ? 'w-0 overflow-hidden' : 'w-80'
+        }`}>
+          <SidebarContent />
         </div>
 
         {/* Main Canvas Area */}
-        <div className="flex-1 flex flex-col bg-gray-100">
+        <div className="flex-1 flex flex-col bg-gray-100 min-w-0">
           <DesignCanvas 
             ref={canvasRef}
             selectedTemplate={selectedTemplate}
