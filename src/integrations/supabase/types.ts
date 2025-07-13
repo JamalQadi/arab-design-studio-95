@@ -104,6 +104,62 @@ export type Database = {
         }
         Relationships: []
       }
+      shared_designs: {
+        Row: {
+          created_at: string
+          description: string | null
+          expires_at: string | null
+          id: string
+          is_public: boolean | null
+          password_hash: string | null
+          password_protected: boolean | null
+          project_id: string | null
+          share_token: string
+          title: string
+          updated_at: string
+          user_id: string
+          view_count: number | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          expires_at?: string | null
+          id?: string
+          is_public?: boolean | null
+          password_hash?: string | null
+          password_protected?: boolean | null
+          project_id?: string | null
+          share_token?: string
+          title: string
+          updated_at?: string
+          user_id: string
+          view_count?: number | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          expires_at?: string | null
+          id?: string
+          is_public?: boolean | null
+          password_hash?: string | null
+          password_protected?: boolean | null
+          project_id?: string | null
+          share_token?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+          view_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_designs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       templates: {
         Row: {
           category: string
@@ -134,6 +190,78 @@ export type Database = {
           name?: string
           type?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      travel_agencies: {
+        Row: {
+          address: string | null
+          agency_name: string
+          agency_name_en: string | null
+          city: string | null
+          colors: Json | null
+          country: string | null
+          created_at: string
+          description: string | null
+          email: string | null
+          established_year: number | null
+          id: string
+          is_active: boolean | null
+          license_number: string | null
+          logo_url: string | null
+          phone: string | null
+          services: Json | null
+          slogan: string | null
+          social_media: Json | null
+          updated_at: string
+          user_id: string
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          agency_name: string
+          agency_name_en?: string | null
+          city?: string | null
+          colors?: Json | null
+          country?: string | null
+          created_at?: string
+          description?: string | null
+          email?: string | null
+          established_year?: number | null
+          id?: string
+          is_active?: boolean | null
+          license_number?: string | null
+          logo_url?: string | null
+          phone?: string | null
+          services?: Json | null
+          slogan?: string | null
+          social_media?: Json | null
+          updated_at?: string
+          user_id: string
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          agency_name?: string
+          agency_name_en?: string | null
+          city?: string | null
+          colors?: Json | null
+          country?: string | null
+          created_at?: string
+          description?: string | null
+          email?: string | null
+          established_year?: number | null
+          id?: string
+          is_active?: boolean | null
+          license_number?: string | null
+          logo_url?: string | null
+          phone?: string | null
+          services?: Json | null
+          slogan?: string | null
+          social_media?: Json | null
+          updated_at?: string
+          user_id?: string
+          website?: string | null
         }
         Relationships: []
       }

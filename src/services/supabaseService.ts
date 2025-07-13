@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { toast } from "sonner";
@@ -12,6 +11,13 @@ type TemplateInsert = Database['public']['Tables']['templates']['Insert'];
 
 type CV = Database['public']['Tables']['cvs']['Row'];
 type CVInsert = Database['public']['Tables']['cvs']['Insert'];
+
+type TravelAgency = Database['public']['Tables']['travel_agencies']['Row'];
+type TravelAgencyInsert = Database['public']['Tables']['travel_agencies']['Insert'];
+type TravelAgencyUpdate = Database['public']['Tables']['travel_agencies']['Update'];
+
+type SharedDesign = Database['public']['Tables']['shared_designs']['Row'];
+type SharedDesignInsert = Database['public']['Tables']['shared_designs']['Insert'];
 
 export class SupabaseService {
   
@@ -282,6 +288,219 @@ export class SupabaseService {
       console.error('Error fetching CVs:', error);
       toast.error('خطأ في جلب السير الذاتية');
       return [];
+    }
+  }
+
+  // Travel Agency methods
+  async createTravelAgency(agencyData: Omit<TravelAgencyInsert, 'user_id'>) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('يجب تسجيل الدخول أولاً');
+
+      const newAgency: TravelAgencyInsert = {
+        user_id: user.id,
+        ...agencyData
+      };
+
+      const { data, error } = await supabase
+        .from('travel_agencies')
+        .insert(newAgency)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast.success('تم إنشاء بيانات مكتب السفر بنجاح');
+      return { success: true, agency: data };
+    } catch (error: any) {
+      console.error('Error creating travel agency:', error);
+      toast.error(error.message || 'خطأ في إنشاء بيانات مكتب السفر');
+      return { success: false, error: error.message };
+    }
+  }
+
+  async getTravelAgencyData() {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return { success: false, error: 'غير مسجل دخول' };
+
+      const { data, error } = await supabase
+        .from('travel_agencies')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error;
+
+      return { success: true, agency: data };
+    } catch (error: any) {
+      console.error('Error fetching travel agency data:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async updateTravelAgency(agencyId: string, updates: TravelAgencyUpdate) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('يجب تسجيل الدخول أولاً');
+
+      const { data, error } = await supabase
+        .from('travel_agencies')
+        .update(updates)
+        .eq('id', agencyId)
+        .eq('user_id', user.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast.success('تم تحديث بيانات مكتب السفر بنجاح');
+      return { success: true, agency: data };
+    } catch (error: any) {
+      console.error('Error updating travel agency:', error);
+      toast.error(error.message || 'خطأ في تحديث بيانات مكتب السفر');
+      return { success: false, error: error.message };
+    }
+  }
+
+  // Shared Design methods
+  async createSharedDesign(shareData: {
+    project_id: string;
+    title: string;
+    description?: string;
+    is_public?: boolean;
+    password_protected?: boolean;
+    password?: string;
+    expires_at?: string;
+  }) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('يجب تسجيل الدخول أولاً');
+
+      const newShare: SharedDesignInsert = {
+        user_id: user.id,
+        project_id: shareData.project_id,
+        title: shareData.title,
+        description: shareData.description,
+        is_public: shareData.is_public ?? true,
+        password_protected: shareData.password_protected ?? false,
+        password_hash: shareData.password ? await this.hashPassword(shareData.password) : null,
+        expires_at: shareData.expires_at ? new Date(shareData.expires_at).toISOString() : null
+      };
+
+      const { data, error } = await supabase
+        .from('shared_designs')
+        .insert(newShare)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast.success('تم إنشاء رابط المشاركة بنجاح');
+      return { success: true, share: data };
+    } catch (error: any) {
+      console.error('Error creating shared design:', error);
+      toast.error(error.message || 'خطأ في إنشاء رابط المشاركة');
+      return { success: false, error: error.message };
+    }
+  }
+
+  async getSharedDesign(shareToken: string, password?: string) {
+    try {
+      const { data, error } = await supabase
+        .from('shared_designs')
+        .select(`
+          *,
+          projects (
+            name,
+            data,
+            type
+          )
+        `)
+        .eq('share_token', shareToken)
+        .single();
+
+      if (error) throw error;
+
+      // Check if design has expired
+      if (data.expires_at && new Date(data.expires_at) < new Date()) {
+        throw new Error('انتهت صلاحية رابط المشاركة');
+      }
+
+      // Check password if protected
+      if (data.password_protected && password) {
+        const isValidPassword = await this.verifyPassword(password, data.password_hash);
+        if (!isValidPassword) {
+          throw new Error('كلمة المرور غير صحيحة');
+        }
+      }
+
+      // Increment view count
+      await supabase
+        .from('shared_designs')
+        .update({ view_count: (data.view_count || 0) + 1 })
+        .eq('id', data.id);
+
+      return { success: true, design: data };
+    } catch (error: any) {
+      console.error('Error fetching shared design:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async getMySharedDesigns() {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+
+      const { data, error } = await supabase
+        .from('shared_designs')
+        .select(`
+          *,
+          projects (
+            name,
+            type
+          )
+        `)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error: any) {
+      console.error('Error fetching shared designs:', error);
+      toast.error('خطأ في جلب المشاركات');
+      return [];
+    }
+  }
+
+  // Utility methods for password hashing
+  private async hashPassword(password: string): Promise<string> {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(password);
+    const hash = await crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(hash))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+  }
+
+  private async verifyPassword(password: string, hash: string | null): Promise<boolean> {
+    if (!hash) return false;
+    const passwordHash = await this.hashPassword(password);
+    return passwordHash === hash;
+  }
+
+  // Helper method to get agency data for templates
+  async getAgencyDataForTemplate() {
+    try {
+      const result = await this.getTravelAgencyData();
+      if (result.success && result.agency) {
+        return result.agency;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error getting agency data for template:', error);
+      return null;
     }
   }
 

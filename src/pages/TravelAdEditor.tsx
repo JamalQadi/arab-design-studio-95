@@ -1,6 +1,6 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Download, Save, Eye, Undo, Redo, Menu, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, Download, Save, Eye, Undo, Redo, Menu, X, ChevronLeft, ChevronRight, Share2, Building2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { DesignCanvas } from "@/components/editor/DesignCanvas";
 import { TemplatesPanel } from "@/components/editor/TemplatesPanel";
@@ -8,7 +8,9 @@ import { ToolboxPanel } from "@/components/editor/ToolboxPanel";
 import { PropertiesPanel } from "@/components/editor/PropertiesPanel";
 import { LayersPanel } from "@/components/editor/LayersPanel";
 import { ExportModal } from "@/components/ExportModal";
-import { authService } from "@/services/authService";
+import { ShareDesignModal } from "@/components/sharing/ShareDesignModal";
+import { AgencySetupModal } from "@/components/agency/AgencySetupModal";
+import { supabaseService } from "@/services/supabaseService";
 import { useToast } from "@/hooks/use-toast";
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
 
@@ -18,6 +20,10 @@ const TravelAdEditor = () => {
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isAgencySetupOpen, setIsAgencySetupOpen] = useState(false);
+  const [currentProjectId, setCurrentProjectId] = useState<string>('');
+  const [agencyData, setAgencyData] = useState<any>(null);
   const [designData, setDesignData] = useState({
     template: 0,
     elements: [],
@@ -38,6 +44,19 @@ const TravelAdEditor = () => {
     { name: "وسائل التواصل", type: "social", category: "social", color: "from-indigo-500 to-blue-600" },
     { name: "تصميم شعار", type: "logo", category: "logo", color: "from-orange-500 to-red-600" }
   ];
+
+  useEffect(() => {
+    loadAgencyData();
+  }, []);
+
+  const loadAgencyData = async () => {
+    try {
+      const agency = await supabaseService.getAgencyDataForTemplate();
+      setAgencyData(agency);
+    } catch (error) {
+      console.error('Error loading agency data:', error);
+    }
+  };
 
   const saveToHistory = (data: any) => {
     const newHistory = history.slice(0, historyIndex + 1);
@@ -63,24 +82,30 @@ const TravelAdEditor = () => {
   const handleSave = async () => {
     try {
       const templateName = templates[selectedTemplate]?.name || 'إعلان سياحي';
+      
+      // إضافة بيانات المكتب إلى التصميم
+      const enrichedDesignData = {
+        ...designData,
+        template: selectedTemplate,
+        agencyData: agencyData,
+        savedAt: new Date().toISOString()
+      };
+
       const projectData = {
         name: templateName,
         type: 'travel' as const,
-        data: {
-          ...designData,
-          template: selectedTemplate,
-          savedAt: new Date().toISOString()
-        }
+        data: enrichedDesignData
       };
 
-      const result = await authService.createProject(projectData);
+      const result = await supabaseService.createProject(projectData);
       
-      if (result.success) {
+      if (result.success && result.project) {
+        setCurrentProjectId(result.project.id);
         toast({
           title: "تم الحفظ بنجاح",
           description: "تم حفظ التصميم في مشاريعك",
         });
-        saveToHistory(designData);
+        saveToHistory(enrichedDesignData);
       } else {
         toast({
           title: "خطأ في الحفظ",
@@ -104,22 +129,48 @@ const TravelAdEditor = () => {
   };
 
   const handleAddElement = (element: any) => {
-    const newData = {
-      ...designData,
-      elements: [...(designData.elements || []), element]
-    };
-    handleDesignChange(newData);
+    // إضافة بيانات المكتب إلى العنصر إذا كان نص
+    if (element.type === 'text' && agencyData) {
+      const enrichedElement = {
+        ...element,
+        agencyData: agencyData
+      };
+      
+      const newData = {
+        ...designData,
+        elements: [...(designData.elements || []), enrichedElement]
+      };
+      handleDesignChange(newData);
+    } else {
+      const newData = {
+        ...designData,
+        elements: [...(designData.elements || []), element]
+      };
+      handleDesignChange(newData);
+    }
   };
 
   const handlePrebuiltTemplateSelect = (templateData: any) => {
     console.log('Loading prebuilt template:', templateData);
     
+    // ملء القالب ببيانات المكتب
+    const enrichedElements = templateData.elements?.map((element: any) => {
+      if (element.type === 'text' && agencyData) {
+        return {
+          ...element,
+          agencyData: agencyData
+        };
+      }
+      return element;
+    }) || [];
+    
     const newDesignData = {
       ...designData,
-      elements: templateData.elements || [],
+      elements: enrichedElements,
       size: templateData.size || { width: 800, height: 600 },
       background: templateData.background || "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-      templateName: templateData.name
+      templateName: templateData.name,
+      agencyData: agencyData
     };
     
     setDesignData(newDesignData);
@@ -127,14 +178,47 @@ const TravelAdEditor = () => {
     
     toast({
       title: "تم تحميل القالب",
-      description: `تم تحميل قالب "${templateData.name}" بنجاح`,
+      description: `تم تحميل قالب "${templateData.name}" مع بيانات مكتبك`,
     });
 
     setActivePanel('tools');
   };
 
+  const handleShare = () => {
+    if (!currentProjectId) {
+      toast({
+        title: "يجب حفظ التصميم أولاً",
+        description: "احفظ التصميم قبل مشاركته",
+        variant: "destructive",
+      });
+      return;
+    }
+    setIsShareModalOpen(true);
+  };
+
+  const handleAgencySetup = () => {
+    setIsAgencySetupOpen(true);
+  };
+
+  const handleAgencyCreated = () => {
+    loadAgencyData();
+  };
+
   const SidebarContent = () => (
     <>
+      {/* Agency Status */}
+      {!agencyData && (
+        <div className="p-4 bg-yellow-50 border-b border-yellow-200">
+          <div className="text-sm text-yellow-800 mb-2">
+            لم يتم إعداد بيانات مكتب السفر
+          </div>
+          <Button size="sm" variant="outline" onClick={handleAgencySetup}>
+            <Building2 className="w-4 h-4 ml-1" />
+            إعداد المكتب
+          </Button>
+        </div>
+      )}
+
       {/* Panel Tabs */}
       <div className="flex border-b border-gray-200 overflow-x-auto">
         {[
@@ -256,6 +340,10 @@ const TravelAdEditor = () => {
               <Save className="w-4 h-4 sm:ml-2" />
               <span className="hidden sm:inline">حفظ</span>
             </Button>
+            <Button variant="outline" size="sm" onClick={handleShare}>
+              <Share2 className="w-4 h-4 sm:ml-2" />
+              <span className="hidden sm:inline">مشاركة</span>
+            </Button>
             <ExportModal 
               canvasRef={canvasRef}
               trigger={
@@ -289,6 +377,20 @@ const TravelAdEditor = () => {
           />
         </div>
       </div>
+
+      {/* Modals */}
+      <ShareDesignModal
+        open={isShareModalOpen}
+        onOpenChange={setIsShareModalOpen}
+        projectId={currentProjectId}
+        projectName={templates[selectedTemplate]?.name || 'إعلان سياحي'}
+      />
+
+      <AgencySetupModal
+        open={isAgencySetupOpen}
+        onOpenChange={setIsAgencySetupOpen}
+        onAgencyCreated={handleAgencyCreated}
+      />
     </div>
   );
 };
