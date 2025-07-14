@@ -30,13 +30,18 @@ export const TemplatesPanel = ({
 }: TemplatesPanelProps) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState<'prebuilt' | 'basic'>('prebuilt');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
   const getCategoryIcon = (category: string) => {
     const icons = {
       religious: '🕋',
       flights: '✈️',
       visa: '📋',
-      honeymoon: '💑'
+      honeymoon: '💑',
+      cv: '📄',
+      logo: '🏷️',
+      advertisement: '📢',
+      social: '📱'
     };
     return icons[category as keyof typeof icons] || '📋';
   };
@@ -46,6 +51,23 @@ export const TemplatesPanel = ({
   );
 
   const prebuiltTemplatesList = Object.values(prebuiltTemplates);
+  
+  // Filter prebuilt templates by category and search
+  const filteredPrebuiltTemplates = prebuiltTemplatesList.filter(template => {
+    const matchesSearch = template.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = selectedCategory === 'all' || template.type === selectedCategory || template.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
+
+  // Get unique categories from prebuilt templates
+  const categories = [
+    { id: 'all', name: 'جميع القوالب', icon: '📋' },
+    { id: 'cv', name: 'سيرة ذاتية', icon: '📄' },
+    { id: 'logo', name: 'شعارات', icon: '🏷️' },
+    { id: 'advertisement', name: 'إعلانات', icon: '📢' },
+    { id: 'religious', name: 'ديني', icon: '🕋' },
+    { id: 'social', name: 'اجتماعي', icon: '📱' }
+  ];
 
   const handlePrebuiltTemplateSelect = (templateData: any) => {
     if (onPrebuiltTemplateSelect) {
@@ -96,19 +118,46 @@ export const TemplatesPanel = ({
       {activeTab === 'prebuilt' ? (
         /* Prebuilt Templates */
         <div className="space-y-4">
+          {/* Category Filter */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {categories.map((category) => (
+              <button
+                key={category.id}
+                onClick={() => setSelectedCategory(category.id)}
+                className={`flex items-center px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                  selectedCategory === category.id
+                    ? 'bg-blue-100 text-blue-800'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                <span className="ml-1">{category.icon}</span>
+                {category.name}
+              </button>
+            ))}
+          </div>
+
           <div className="text-sm text-blue-600 bg-blue-50 p-3 rounded-lg mb-4">
             <Sparkles className="w-4 h-4 inline ml-1" />
-            قوالب جاهزة ومكتملة يمكنك تعديل محتواها مباشرة
+            قوالب جاهزة ومكتملة تنافس الكانفا - يمكنك تعديل محتواها مباشرة
           </div>
           
-          {prebuiltTemplatesList.map((template, index) => (
-            <PrebuiltTemplate
-              key={index}
-              template={template}
-              onSelect={() => handlePrebuiltTemplateSelect(template)}
-              onPreview={() => console.log('Preview template:', template.name)}
-            />
-          ))}
+          <div className="space-y-4 max-h-96 overflow-y-auto">
+            {filteredPrebuiltTemplates.length > 0 ? (
+              filteredPrebuiltTemplates.map((template, index) => (
+                <PrebuiltTemplate
+                  key={index}
+                  template={template}
+                  onSelect={() => handlePrebuiltTemplateSelect(template)}
+                  onPreview={() => console.log('Preview template:', template.name)}
+                />
+              ))
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <div className="text-4xl mb-2">🔍</div>
+                <p>لا توجد قوالب تطابق البحث</p>
+              </div>
+            )}
+          </div>
         </div>
       ) : (
         /* Basic Templates */

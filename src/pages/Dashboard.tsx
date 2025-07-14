@@ -1,336 +1,369 @@
-
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { 
-  BarChart3, 
-  FileText, 
-  Download, 
-  Star, 
-  Clock,
-  Plus,
-  Eye,
-  Share2,
-  Building2,
-  Edit,
-  Trash2
-} from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router-dom";
-import { CreateProjectModal } from "@/components/CreateProjectModal";
+import { Plus, Eye, RefreshCw, Edit, Trash2, Settings, Building } from "lucide-react";
+import Header from "@/components/Header";
+import { Footer } from "@/components/Footer";
 import { supabaseService } from "@/services/supabaseService";
 import { organizationService } from "@/services/organizationService";
-import { useAuth } from "@/components/auth/AuthProvider";
-import { toast } from "sonner";
+import { format } from 'date-fns';
+import { ar } from 'date-fns/locale';
 
 const Dashboard = () => {
-  const { user } = useAuth();
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [projects, setProjects] = useState<any[]>([]);
   const [organizations, setOrganizations] = useState<any[]>([]);
-  const [sharedDesigns, setSharedDesigns] = useState<any[]>([]);
-  const [stats, setStats] = useState({
-    totalProjects: 0,
-    completedProjects: 0,
-    totalDownloads: 0,
-    averageRating: 0,
-    workingHours: 0,
-  });
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (user) {
-      loadDashboardData();
-    }
-  }, [user]);
+    loadProjects();
+    loadOrganizations();
+  }, []);
 
-  const loadDashboardData = async () => {
+  const loadProjects = async () => {
+    setIsLoading(true);
     try {
-      setIsLoading(true);
-      const [projectsData, statsData, sharesData, orgsData] = await Promise.all([
-        supabaseService.getProjects(),
-        supabaseService.getUserStats(),
-        supabaseService.getMySharedDesigns(),
-        organizationService.getOrganizations()
-      ]);
-      
+      const projectsData = await supabaseService.getProjects();
       setProjects(projectsData);
-      setStats(statsData);
-      setSharedDesigns(sharesData);
-      setOrganizations(orgsData);
     } catch (error) {
-      console.error('Error loading dashboard data:', error);
-      toast.error('خطأ في تحميل بيانات اللوحة');
+      console.error("Error fetching projects:", error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleDeleteProject = async (projectId: string) => {
-    if (confirm('هل أنت متأكد من حذف هذا المشروع؟')) {
-      const result = await supabaseService.deleteProject(projectId);
-      if (result.success) {
-        loadDashboardData();
-      }
+  const loadOrganizations = async () => {
+    try {
+      const orgs = await organizationService.getOrganizations();
+      setOrganizations(orgs);
+    } catch (error) {
+      console.error('Error loading organizations:', error);
+    }
+  };
+
+  const deleteProject = async (projectId: string) => {
+    try {
+      await supabaseService.deleteProject(projectId);
+      setProjects(projects.filter(project => project.id !== projectId));
+    } catch (error) {
+      console.error("Error deleting project:", error);
+    }
+  };
+
+  const editProject = (project: any) => {
+    // Implement edit functionality here
+    console.log("Editing project:", project);
+  };
+
+  const getProjectTypeColor = (type: string) => {
+    switch (type) {
+      case 'travel': return 'bg-green-100 text-green-600';
+      case 'cv': return 'bg-blue-100 text-blue-600';
+      case 'logo': return 'bg-purple-100 text-purple-600';
+      default: return 'bg-gray-100 text-gray-600';
     }
   };
 
   const getProjectTypeIcon = (type: string) => {
     switch (type) {
-      case 'travel': return '✈️';
+      case 'travel': return '🧳';
       case 'cv': return '📄';
       case 'logo': return '🎨';
-      case 'social': return '📱';
-      default: return '📋';
+      default: return '📁';
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'مكتمل': return 'bg-green-100 text-green-800';
-      case 'قيد التطوير': return 'bg-yellow-100 text-yellow-800';
-      case 'مسودة': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
+  const getProjectTypeLabel = (type: string) => {
+    switch (type) {
+      case 'travel': return 'إعلان سياحي';
+      case 'cv': return 'سيرة ذاتية';
+      case 'logo': return 'شعار';
+      default: return 'مشروع';
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 p-4">
-        <div className="max-w-7xl mx-auto">
-          <div className="animate-pulse space-y-4">
-            <div className="h-8 bg-gray-200 rounded w-1/4"></div>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="h-32 bg-gray-200 rounded"></div>
-              ))}
-            </div>
-            <div className="h-64 bg-gray-200 rounded"></div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const templateCategories = [
+    { name: "إعلانات السفر", icon: "🧳", count: 45 },
+    { name: "السير الذاتية", icon: "📄", count: 38 },
+    { name: "الشعارات", icon: "🎨", count: 32 },
+    { name: "التواصل الاجتماعي", icon: "📱", count: 35 }
+  ];
+
+  const quickActions = [
+    {
+      title: "تصميم إعلان سياحي",
+      description: "ابدأ بإنشاء إعلان احترافي للرحلات والسفر",
+      icon: "🧳",
+      color: "from-green-500 to-emerald-600",
+      href: "/travel-ad-editor"
+    },
+    {
+      title: "إنشاء سيرة ذاتية",
+      description: "صمم سيرة ذاتية احترافية تبرز مهاراتك",
+      icon: "📄",
+      color: "from-blue-500 to-indigo-600",
+      href: "/cv-editor"
+    },
+    {
+      title: "تصميم شعار",
+      description: "أنشئ شعاراً مميزاً لعلامتك التجارية",
+      icon: "🎨",
+      color: "from-purple-500 to-pink-600",
+      href: "/logo-editor"
+    },
+    {
+      title: "منشورات اجتماعية",
+      description: "صمم محتوى جذاب لوسائل التواصل الاجتماعي",
+      icon: "📱",
+      color: "from-orange-500 to-red-600",
+      href: "/social-media-editor"
+    }
+  ];
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">لوحة التحكم</h1>
-            <p className="text-gray-600">مرحباً بك، {user?.name || user?.email}</p>
-          </div>
-          <div className="flex gap-3">
-            <Link to="/organization-profile">
-              <Button variant="outline">
-                <Building2 className="w-4 h-4 ml-2" />
-                ملف المؤسسة
+    <div className="min-h-screen bg-gray-50">
+      <Header />
+      
+      {/* Dashboard Header */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">لوحة التحكم</h1>
+              <p className="text-gray-600">مرحباً بك في منصة التصميم الاحترافية</p>
+            </div>
+            <div className="flex space-x-4">
+              <Button asChild className="bg-blue-600 hover:bg-blue-700">
+                <Link to="/travel-ad-editor">
+                  <Plus className="w-4 h-4 ml-2" />
+                  مشروع جديد
+                </Link>
               </Button>
-            </Link>
-            <Button onClick={() => setIsCreateModalOpen(true)}>
-              <Plus className="w-4 h-4 ml-2" />
-              مشروع جديد
-            </Button>
+              <Button variant="outline" asChild>
+                <Link to="/templates">
+                  <Eye className="w-4 h-4 ml-2" />
+                  تصفح القوالب
+                </Link>
+              </Button>
+            </div>
           </div>
         </div>
+      </div>
 
-        {/* Organization Quick Access */}
-        {organizations.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-right">المؤسسات</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {organizations.slice(0, 3).map((org) => (
-                  <div key={org.id} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className="text-2xl">
-                        {organizationService.getOrganizationTypes().find(t => t.id === org.type)?.icon || '🏢'}
-                      </div>
-                      <div>
-                        <h3 className="font-medium text-gray-900">{org.name}</h3>
-                        <p className="text-sm text-gray-500">{org.type}</p>
-                      </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Quick Actions */}
+        <section className="mb-12">
+          <h2 className="text-xl font-semibold text-gray-900 mb-6">البدء السريع</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {quickActions.map((action, index) => (
+              <Link key={index} to={action.href}>
+                <Card className="group cursor-pointer hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+                  <CardContent className="p-6">
+                    <div className={`w-16 h-16 bg-gradient-to-br ${action.color} rounded-lg flex items-center justify-center text-3xl mb-4 group-hover:scale-110 transition-transform duration-300`}>
+                      {action.icon}
                     </div>
-                    <Badge variant="outline">
-                      {organizationService.getOrganizationTypes().find(t => t.id === org.type)?.name || 'غير محدد'}
-                    </Badge>
-                  </div>
+                    <h3 className="font-semibold text-gray-900 mb-2">{action.title}</h3>
+                    <p className="text-sm text-gray-600">{action.description}</p>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Recent Projects */}
+          <div className="lg:col-span-2">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-semibold text-gray-900">المشاريع الأخيرة</h2>
+              <Button variant="ghost" size="sm" onClick={loadProjects}>
+                <RefreshCw className="w-4 h-4 ml-2" />
+                تحديث
+              </Button>
+            </div>
+            
+            {isLoading ? (
+              <div className="space-y-4">
+                {[...Array(3)].map((_, i) => (
+                  <Card key={i}>
+                    <CardContent className="p-4">
+                      <div className="animate-pulse">
+                        <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                        <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 ))}
               </div>
-              {organizations.length > 3 && (
-                <div className="mt-4 text-center">
-                  <Link to="/organization-profile">
-                    <Button variant="outline" size="sm">
-                      عرض جميع المؤسسات ({organizations.length})
-                    </Button>
-                  </Link>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">إجمالي المشاريع</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalProjects}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">المشاريع المكتملة</CardTitle>
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.completedProjects}</div>
-              <p className="text-xs text-muted-foreground">
-                من {stats.totalProjects} مشروع
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">إجمالي التحميلات</CardTitle>
-              <Download className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalDownloads}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">متوسط التقييم</CardTitle>
-              <Star className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.averageRating}</div>
-              <p className="text-xs text-muted-foreground">من 5 نجوم</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">ساعات العمل</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.workingHours}</div>
-              <p className="text-xs text-muted-foreground">ساعة</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Projects Section */}
-        <Card>
-          <CardHeader>
-            <CardTitle>مشاريعي الحديثة</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {projects.length === 0 ? (
-              <div className="text-center py-8">
-                <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">لا توجد مشاريع بعد</h3>
-                <p className="text-gray-600 mb-4">ابدأ بإنشاء مشروعك الأول</p>
-                <Button onClick={() => setIsCreateModalOpen(true)}>
-                  <Plus className="w-4 h-4 ml-2" />
-                  إنشاء مشروع جديد
-                </Button>
-              </div>
-            ) : (
+            ) : projects.length > 0 ? (
               <div className="space-y-4">
                 {projects.slice(0, 5).map((project) => (
-                  <div key={project.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
-                    <div className="flex items-center space-x-4">
-                      <div className="text-2xl">{getProjectTypeIcon(project.type)}</div>
-                      <div>
-                        <h3 className="font-medium text-gray-900">{project.name}</h3>
-                        <div className="flex items-center space-x-2 mt-1">
-                          <Badge className={getStatusColor(project.status)}>
-                            {project.status}
-                          </Badge>
-                          <span className="text-sm text-gray-500">
-                            {new Date(project.created_at).toLocaleDateString('ar-SA')}
-                          </span>
-                          {project.organizations && (
-                            <Badge variant="outline" className="text-xs">
-                              {project.organizations.name}
-                            </Badge>
-                          )}
+                  <Card key={project.id} className="hover:shadow-md transition-shadow">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-white ${getProjectTypeColor(project.type)}`}>
+                            {getProjectTypeIcon(project.type)}
+                          </div>
+                          <div>
+                            <h3 className="font-medium text-gray-900">{project.name}</h3>
+                            <div className="flex items-center space-x-2 text-sm text-gray-500">
+                              <span>{getProjectTypeLabel(project.type)}</span>
+                              <span>•</span>
+                              <span>{format(new Date(project.created_at), 'dd/MM/yyyy', { locale: ar })}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Badge variant="secondary">{project.status}</Badge>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => editProject(project)}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => deleteProject(project.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
                         </div>
                       </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Button variant="ghost" size="sm">
-                        <Eye className="w-4 h-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm">
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => handleDeleteProject(project.id)}
-                      >
-                        <Trash2 className="w-4 h-4 text-red-500" />
-                      </Button>
-                    </div>
-                  </div>
+                    </CardContent>
+                  </Card>
                 ))}
+                
+                {projects.length > 5 && (
+                  <div className="text-center">
+                    <Button variant="outline" className="mt-4">
+                      عرض جميع المشاريع ({projects.length})
+                    </Button>
+                  </div>
+                )}
               </div>
+            ) : (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <div className="text-gray-400 text-6xl mb-4">📁</div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">لا توجد مشاريع حتى الآن</h3>
+                  <p className="text-gray-600 mb-6">ابدأ بإنشاء مشروعك الأول باستخدام أحد القوالب المتاحة</p>
+                  <Button asChild>
+                    <Link to="/travel-ad-editor">إنشاء مشروع جديد</Link>
+                  </Button>
+                </CardContent>
+              </Card>
             )}
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* Shared Designs Section */}
-        {sharedDesigns.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Share2 className="w-5 h-5" />
-                التصاميم المشاركة
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {sharedDesigns.slice(0, 5).map((share) => (
-                  <div key={share.id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                      <h3 className="font-medium text-gray-900">{share.title}</h3>
-                      <div className="flex items-center space-x-2 mt-1">
-                        <Badge variant={share.is_public ? "default" : "secondary"}>
-                          {share.is_public ? 'عام' : 'خاص'}
-                        </Badge>
-                        <span className="text-sm text-gray-500">
-                          {share.view_count || 0} مشاهدة
-                        </span>
-                      </div>
-                    </div>
-                    <div className="text-sm text-gray-500">
-                      {new Date(share.created_at).toLocaleDateString('ar-SA')}
-                    </div>
-                  </div>
+          {/* Organizations & Stats */}
+          <div className="space-y-8">
+            {/* Organizations Section */}
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-gray-900">المؤسسات</h2>
+                <Button variant="ghost" size="sm" asChild>
+                  <Link to="/organization-profile">
+                    <Settings className="w-4 h-4 ml-2" />
+                    إدارة
+                  </Link>
+                </Button>
+              </div>
+              
+              {organizations.length > 0 ? (
+                <div className="space-y-3">
+                  {organizations.slice(0, 3).map((org) => (
+                    <Card key={org.id}>
+                      <CardContent className="p-4">
+                        <div className="flex items-center space-x-3">
+                          {org.logo ? (
+                            <img src={org.logo} alt={org.name} className="w-10 h-10 rounded-lg object-cover" />
+                          ) : (
+                            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                              <Building className="w-5 h-5 text-blue-600" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-medium text-gray-900 truncate">{org.name}</h3>
+                            <p className="text-sm text-gray-500 capitalize">{org.type}</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                  
+                  {organizations.length === 0 && (
+                    <Card>
+                      <CardContent className="p-4 text-center">
+                        <Building className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                        <p className="text-sm text-gray-600">لم يتم إضافة مؤسسات بعد</p>
+                        <Button variant="outline" size="sm" className="mt-2" asChild>
+                          <Link to="/organization-profile">إضافة مؤسسة</Link>
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              ) : (
+                <Card>
+                  <CardContent className="p-4 text-center">
+                    <Building className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-sm text-gray-600 mb-3">لم يتم إضافة مؤسسات بعد</p>
+                    <Button variant="outline" size="sm" asChild>
+                      <Link to="/organization-profile">إضافة مؤسسة</Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+
+            {/* Template Categories */}
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">فئات القوالب</h2>
+              <div className="grid grid-cols-2 gap-3">
+                {templateCategories.map((category, index) => (
+                  <Link key={index} to="/templates">
+                    <Card className="hover:shadow-md transition-shadow cursor-pointer">
+                      <CardContent className="p-4 text-center">
+                        <div className="text-2xl mb-2">{category.icon}</div>
+                        <div className="font-medium text-sm text-gray-900">{category.name}</div>
+                        <div className="text-xs text-gray-500">{category.count} قالب</div>
+                      </CardContent>
+                    </Card>
+                  </Link>
                 ))}
               </div>
-            </CardContent>
-          </Card>
-        )}
+            </div>
 
-        <CreateProjectModal 
-          open={isCreateModalOpen}
-          onOpenChange={setIsCreateModalOpen}
-        />
+            {/* Quick Stats */}
+            <Card>
+              <CardContent className="p-4">
+                <h3 className="font-medium text-gray-900 mb-4">إحصائيات سريعة</h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">إجمالي المشاريع</span>
+                    <span className="font-medium">{projects.length}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">المؤسسات</span>
+                    <span className="font-medium">{organizations.length}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">المشاريع المكتملة</span>
+                    <span className="font-medium">
+                      {projects.filter(p => p.status === 'مكتمل').length}
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
+
+      <Footer />
     </div>
   );
 };
