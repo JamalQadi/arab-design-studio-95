@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { toast } from "sonner";
@@ -12,9 +13,9 @@ type TemplateInsert = Database['public']['Tables']['templates']['Insert'];
 type CV = Database['public']['Tables']['cvs']['Row'];
 type CVInsert = Database['public']['Tables']['cvs']['Insert'];
 
-type TravelAgency = Database['public']['Tables']['travel_agencies']['Row'];
-type TravelAgencyInsert = Database['public']['Tables']['travel_agencies']['Insert'];
-type TravelAgencyUpdate = Database['public']['Tables']['travel_agencies']['Update'];
+type Organization = Database['public']['Tables']['organizations']['Row'];
+type OrganizationInsert = Database['public']['Tables']['organizations']['Insert'];
+type OrganizationUpdate = Database['public']['Tables']['organizations']['Update'];
 
 type SharedDesign = Database['public']['Tables']['shared_designs']['Row'];
 type SharedDesignInsert = Database['public']['Tables']['shared_designs']['Insert'];
@@ -90,6 +91,7 @@ export class SupabaseService {
     name: string;
     type: 'travel' | 'cv' | 'logo' | 'social';
     data?: any;
+    organization_id?: string;
   }) {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -100,6 +102,7 @@ export class SupabaseService {
         name: projectData.name,
         type: projectData.type,
         data: projectData.data || {},
+        organization_id: projectData.organization_id || null,
         status: 'مسودة'
       };
 
@@ -127,7 +130,13 @@ export class SupabaseService {
 
       const { data, error } = await supabase
         .from('projects')
-        .select('*')
+        .select(`
+          *,
+          organizations (
+            name,
+            type
+          )
+        `)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
@@ -291,74 +300,74 @@ export class SupabaseService {
     }
   }
 
-  // Travel Agency methods
-  async createTravelAgency(agencyData: Omit<TravelAgencyInsert, 'user_id'>) {
+  // Organization methods (updated from travel agency)
+  async createOrganization(orgData: Omit<OrganizationInsert, 'user_id'>) {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('يجب تسجيل الدخول أولاً');
 
-      const newAgency: TravelAgencyInsert = {
+      const newOrg: OrganizationInsert = {
         user_id: user.id,
-        ...agencyData
+        ...orgData
       };
 
       const { data, error } = await supabase
-        .from('travel_agencies')
-        .insert(newAgency)
+        .from('organizations')
+        .insert(newOrg)
         .select()
         .single();
 
       if (error) throw error;
 
-      toast.success('تم إنشاء بيانات مكتب السفر بنجاح');
-      return { success: true, agency: data };
+      toast.success('تم إنشاء المؤسسة بنجاح');
+      return { success: true, organization: data };
     } catch (error: any) {
-      console.error('Error creating travel agency:', error);
-      toast.error(error.message || 'خطأ في إنشاء بيانات مكتب السفر');
+      console.error('Error creating organization:', error);
+      toast.error(error.message || 'خطأ في إنشاء المؤسسة');
       return { success: false, error: error.message };
     }
   }
 
-  async getTravelAgencyData() {
+  async getOrganizationData() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return { success: false, error: 'غير مسجل دخول' };
 
       const { data, error } = await supabase
-        .from('travel_agencies')
+        .from('organizations')
         .select('*')
         .eq('user_id', user.id)
         .single();
 
       if (error && error.code !== 'PGRST116') throw error;
 
-      return { success: true, agency: data };
+      return { success: true, organization: data };
     } catch (error: any) {
-      console.error('Error fetching travel agency data:', error);
+      console.error('Error fetching organization data:', error);
       return { success: false, error: error.message };
     }
   }
 
-  async updateTravelAgency(agencyId: string, updates: TravelAgencyUpdate) {
+  async updateOrganization(orgId: string, updates: OrganizationUpdate) {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('يجب تسجيل الدخول أولاً');
 
       const { data, error } = await supabase
-        .from('travel_agencies')
+        .from('organizations')
         .update(updates)
-        .eq('id', agencyId)
+        .eq('id', orgId)
         .eq('user_id', user.id)
         .select()
         .single();
 
       if (error) throw error;
 
-      toast.success('تم تحديث بيانات مكتب السفر بنجاح');
-      return { success: true, agency: data };
+      toast.success('تم تحديث المؤسسة بنجاح');
+      return { success: true, organization: data };
     } catch (error: any) {
-      console.error('Error updating travel agency:', error);
-      toast.error(error.message || 'خطأ في تحديث بيانات مكتب السفر');
+      console.error('Error updating organization:', error);
+      toast.error(error.message || 'خطأ في تحديث المؤسسة');
       return { success: false, error: error.message };
     }
   }
@@ -490,16 +499,16 @@ export class SupabaseService {
     return passwordHash === hash;
   }
 
-  // Helper method to get agency data for templates
-  async getAgencyDataForTemplate() {
+  // Helper method to get organization data for templates
+  async getOrganizationDataForTemplate() {
     try {
-      const result = await this.getTravelAgencyData();
-      if (result.success && result.agency) {
-        return result.agency;
+      const result = await this.getOrganizationData();
+      if (result.success && result.organization) {
+        return result.organization;
       }
       return null;
     } catch (error) {
-      console.error('Error getting agency data for template:', error);
+      console.error('Error getting organization data for template:', error);
       return null;
     }
   }

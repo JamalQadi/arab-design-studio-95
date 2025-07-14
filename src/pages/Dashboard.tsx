@@ -1,8 +1,8 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { 
   BarChart3, 
   FileText, 
@@ -19,6 +19,7 @@ import {
 import { Link } from "react-router-dom";
 import { CreateProjectModal } from "@/components/CreateProjectModal";
 import { supabaseService } from "@/services/supabaseService";
+import { organizationService } from "@/services/organizationService";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { toast } from "sonner";
 
@@ -26,6 +27,7 @@ const Dashboard = () => {
   const { user } = useAuth();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [projects, setProjects] = useState<any[]>([]);
+  const [organizations, setOrganizations] = useState<any[]>([]);
   const [sharedDesigns, setSharedDesigns] = useState<any[]>([]);
   const [stats, setStats] = useState({
     totalProjects: 0,
@@ -45,15 +47,17 @@ const Dashboard = () => {
   const loadDashboardData = async () => {
     try {
       setIsLoading(true);
-      const [projectsData, statsData, sharesData] = await Promise.all([
+      const [projectsData, statsData, sharesData, orgsData] = await Promise.all([
         supabaseService.getProjects(),
         supabaseService.getUserStats(),
-        supabaseService.getMySharedDesigns()
+        supabaseService.getMySharedDesigns(),
+        organizationService.getOrganizations()
       ]);
       
       setProjects(projectsData);
       setStats(statsData);
       setSharedDesigns(sharesData);
+      setOrganizations(orgsData);
     } catch (error) {
       console.error('Error loading dashboard data:', error);
       toast.error('خطأ في تحميل بيانات اللوحة');
@@ -118,10 +122,10 @@ const Dashboard = () => {
             <p className="text-gray-600">مرحباً بك، {user?.name || user?.email}</p>
           </div>
           <div className="flex gap-3">
-            <Link to="/agency-profile">
+            <Link to="/organization-profile">
               <Button variant="outline">
                 <Building2 className="w-4 h-4 ml-2" />
-                ملف مكتب السفر
+                ملف المؤسسة
               </Button>
             </Link>
             <Button onClick={() => setIsCreateModalOpen(true)}>
@@ -130,6 +134,44 @@ const Dashboard = () => {
             </Button>
           </div>
         </div>
+
+        {/* Organization Quick Access */}
+        {organizations.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-right">المؤسسات</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {organizations.slice(0, 3).map((org) => (
+                  <div key={org.id} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="text-2xl">
+                        {organizationService.getOrganizationTypes().find(t => t.id === org.type)?.icon || '🏢'}
+                      </div>
+                      <div>
+                        <h3 className="font-medium text-gray-900">{org.name}</h3>
+                        <p className="text-sm text-gray-500">{org.type}</p>
+                      </div>
+                    </div>
+                    <Badge variant="outline">
+                      {organizationService.getOrganizationTypes().find(t => t.id === org.type)?.name || 'غير محدد'}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+              {organizations.length > 3 && (
+                <div className="mt-4 text-center">
+                  <Link to="/organization-profile">
+                    <Button variant="outline" size="sm">
+                      عرض جميع المؤسسات ({organizations.length})
+                    </Button>
+                  </Link>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -220,6 +262,11 @@ const Dashboard = () => {
                           <span className="text-sm text-gray-500">
                             {new Date(project.created_at).toLocaleDateString('ar-SA')}
                           </span>
+                          {project.organizations && (
+                            <Badge variant="outline" className="text-xs">
+                              {project.organizations.name}
+                            </Badge>
+                          )}
                         </div>
                       </div>
                     </div>

@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Download, Save, Eye, Undo, Redo, Menu, X, ChevronLeft, ChevronRight, Share2, Building2 } from "lucide-react";
@@ -7,23 +8,26 @@ import { TemplatesPanel } from "@/components/editor/TemplatesPanel";
 import { ToolboxPanel } from "@/components/editor/ToolboxPanel";
 import { PropertiesPanel } from "@/components/editor/PropertiesPanel";
 import { LayersPanel } from "@/components/editor/LayersPanel";
+import { ImageGallery } from "@/components/organization/ImageGallery";
 import { ExportModal } from "@/components/ExportModal";
 import { ShareDesignModal } from "@/components/sharing/ShareDesignModal";
-import { AgencySetupModal } from "@/components/agency/AgencySetupModal";
+import { OrganizationSetupModal } from "@/components/organization/OrganizationSetupModal";
 import { supabaseService } from "@/services/supabaseService";
+import { organizationService } from "@/services/organizationService";
 import { useToast } from "@/hooks/use-toast";
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
 
 const TravelAdEditor = () => {
   const [selectedTemplate, setSelectedTemplate] = useState(0);
-  const [activePanel, setActivePanel] = useState<'templates' | 'tools' | 'properties' | 'layers'>('templates');
+  const [activePanel, setActivePanel] = useState<'templates' | 'tools' | 'properties' | 'layers' | 'images'>('templates');
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-  const [isAgencySetupOpen, setIsAgencySetupOpen] = useState(false);
+  const [isOrganizationSetupOpen, setIsOrganizationSetupOpen] = useState(false);
   const [currentProjectId, setCurrentProjectId] = useState<string>('');
-  const [agencyData, setAgencyData] = useState<any>(null);
+  const [organizations, setOrganizations] = useState<any[]>([]);
+  const [selectedOrganization, setSelectedOrganization] = useState<any>(null);
   const [designData, setDesignData] = useState({
     template: 0,
     elements: [],
@@ -46,15 +50,18 @@ const TravelAdEditor = () => {
   ];
 
   useEffect(() => {
-    loadAgencyData();
+    loadOrganizations();
   }, []);
 
-  const loadAgencyData = async () => {
+  const loadOrganizations = async () => {
     try {
-      const agency = await supabaseService.getAgencyDataForTemplate();
-      setAgencyData(agency);
+      const orgs = await organizationService.getOrganizations();
+      setOrganizations(orgs);
+      if (orgs.length > 0) {
+        setSelectedOrganization(orgs[0]);
+      }
     } catch (error) {
-      console.error('Error loading agency data:', error);
+      console.error('Error loading organizations:', error);
     }
   };
 
@@ -83,18 +90,19 @@ const TravelAdEditor = () => {
     try {
       const templateName = templates[selectedTemplate]?.name || 'إعلان سياحي';
       
-      // إضافة بيانات المكتب إلى التصميم
+      // إضافة بيانات المؤسسة إلى التصميم
       const enrichedDesignData = {
         ...designData,
         template: selectedTemplate,
-        agencyData: agencyData,
+        organizationData: selectedOrganization,
         savedAt: new Date().toISOString()
       };
 
       const projectData = {
         name: templateName,
         type: 'travel' as const,
-        data: enrichedDesignData
+        data: enrichedDesignData,
+        organization_id: selectedOrganization?.id || undefined
       };
 
       const result = await supabaseService.createProject(projectData);
@@ -129,11 +137,11 @@ const TravelAdEditor = () => {
   };
 
   const handleAddElement = (element: any) => {
-    // إضافة بيانات المكتب إلى العنصر إذا كان نص
-    if (element.type === 'text' && agencyData) {
+    // إضافة بيانات المؤسسة إلى العنصر إذا كان نص
+    if (element.type === 'text' && selectedOrganization) {
       const enrichedElement = {
         ...element,
-        agencyData: agencyData
+        organizationData: selectedOrganization
       };
       
       const newData = {
@@ -153,16 +161,15 @@ const TravelAdEditor = () => {
   const handlePrebuiltTemplateSelect = (templateData: any) => {
     console.log('Loading prebuilt template:', templateData);
     
-    // ملء القالب ببيانات المكتب
-    const enrichedElements = templateData.elements?.map((element: any) => {
-      if (element.type === 'text' && agencyData) {
-        return {
-          ...element,
-          agencyData: agencyData
-        };
-      }
-      return element;
-    }) || [];
+    // ملء القالب ببيانات المؤسسة
+    let enrichedElements = templateData.elements || [];
+    
+    if (selectedOrganization) {
+      enrichedElements = organizationService.fillTemplateWithOrganizationData(
+        templateData.elements || [],
+        selectedOrganization
+      );
+    }
     
     const newDesignData = {
       ...designData,
@@ -170,7 +177,7 @@ const TravelAdEditor = () => {
       size: templateData.size || { width: 800, height: 600 },
       background: templateData.background || "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
       templateName: templateData.name,
-      agencyData: agencyData
+      organizationData: selectedOrganization
     };
     
     setDesignData(newDesignData);
@@ -178,9 +185,19 @@ const TravelAdEditor = () => {
     
     toast({
       title: "تم تحميل القالب",
-      description: `تم تحميل قالب "${templateData.name}" مع بيانات مكتبك`,
+      description: `تم تحميل قالب "${templateData.name}" ${selectedOrganization ? 'مع بيانات مؤسستك' : ''}`,
     });
 
+    setActivePanel('tools');
+  };
+
+  const handleImageSelect = (imageUrl: string) => {
+    const newData = {
+      ...designData,
+      background: `url(${imageUrl})`,
+      backgroundType: 'image'
+    };
+    handleDesignChange(newData);
     setActivePanel('tools');
   };
 
@@ -196,34 +213,50 @@ const TravelAdEditor = () => {
     setIsShareModalOpen(true);
   };
 
-  const handleAgencySetup = () => {
-    setIsAgencySetupOpen(true);
+  const handleOrganizationSetup = () => {
+    setIsOrganizationSetupOpen(true);
   };
 
-  const handleAgencyCreated = () => {
-    loadAgencyData();
+  const handleOrganizationCreated = () => {
+    loadOrganizations();
   };
 
   const SidebarContent = () => (
     <>
-      {/* Agency Status */}
-      {!agencyData && (
-        <div className="p-4 bg-yellow-50 border-b border-yellow-200">
-          <div className="text-sm text-yellow-800 mb-2">
-            لم يتم إعداد بيانات مكتب السفر
-          </div>
-          <Button size="sm" variant="outline" onClick={handleAgencySetup}>
-            <Building2 className="w-4 h-4 ml-1" />
-            إعداد المكتب
-          </Button>
+      {/* Organization Status */}
+      <div className="p-4 bg-blue-50 border-b border-blue-200">
+        <div className="text-sm text-blue-800 mb-2">
+          {selectedOrganization ? `المؤسسة المختارة: ${selectedOrganization.name}` : 'لم يتم اختيار مؤسسة'}
         </div>
-      )}
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={handleOrganizationSetup}>
+            <Building2 className="w-4 h-4 ml-1" />
+            إعداد المؤسسة
+          </Button>
+          {organizations.length > 0 && (
+            <select 
+              value={selectedOrganization?.id || ''}
+              onChange={(e) => {
+                const org = organizations.find(o => o.id === e.target.value);
+                setSelectedOrganization(org || null);
+              }}
+              className="text-xs border rounded px-2 py-1"
+            >
+              <option value="">اختر المؤسسة</option>
+              {organizations.map(org => (
+                <option key={org.id} value={org.id}>{org.name}</option>
+              ))}
+            </select>
+          )}
+        </div>
+      </div>
 
       {/* Panel Tabs */}
       <div className="flex border-b border-gray-200 overflow-x-auto">
         {[
           { id: 'templates', label: 'القوالب', icon: '🎨' },
           { id: 'tools', label: 'الأدوات', icon: '🛠️' },
+          { id: 'images', label: 'الصور', icon: '🖼️' },
           { id: 'properties', label: 'الخصائص', icon: '⚙️' },
           { id: 'layers', label: 'الطبقات', icon: '📋' }
         ].map((tab) => (
@@ -254,6 +287,12 @@ const TravelAdEditor = () => {
         )}
         {activePanel === 'tools' && (
           <ToolboxPanel onAddElement={handleAddElement} />
+        )}
+        {activePanel === 'images' && (
+          <ImageGallery 
+            onImageSelect={handleImageSelect}
+            showUpload={true}
+          />
         )}
         {activePanel === 'properties' && <PropertiesPanel />}
         {activePanel === 'layers' && <LayersPanel />}
@@ -306,7 +345,7 @@ const TravelAdEditor = () => {
               </Button>
             </Link>
             <div className="h-4 w-px bg-gray-300 hidden sm:block" />
-            <h1 className="text-sm sm:text-lg font-semibold text-gray-900 hidden sm:block">محرر الإعلانات السياحية</h1>
+            <h1 className="text-sm sm:text-lg font-semibold text-gray-900 hidden sm:block">محرر التصاميم</h1>
           </div>
           
           <div className="flex items-center space-x-1 sm:space-x-2">
@@ -383,13 +422,13 @@ const TravelAdEditor = () => {
         open={isShareModalOpen}
         onOpenChange={setIsShareModalOpen}
         projectId={currentProjectId}
-        projectName={templates[selectedTemplate]?.name || 'إعلان سياحي'}
+        projectName={templates[selectedTemplate]?.name || 'تصميم'}
       />
 
-      <AgencySetupModal
-        open={isAgencySetupOpen}
-        onOpenChange={setIsAgencySetupOpen}
-        onAgencyCreated={handleAgencyCreated}
+      <OrganizationSetupModal
+        open={isOrganizationSetupOpen}
+        onOpenChange={setIsOrganizationSetupOpen}
+        onOrganizationCreated={handleOrganizationCreated}
       />
     </div>
   );
