@@ -45,6 +45,8 @@ export const CreateProjectModal = ({ open, onOpenChange }: CreateProjectModalPro
         onOpenChange(false);
         setProjectName("");
         setProjectType('travel');
+        // Reload the page to refresh the projects list
+        window.location.reload();
       } else {
         toast({
           title: "خطأ",

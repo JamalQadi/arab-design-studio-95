@@ -38,6 +38,54 @@ export type Database = {
         }
         Relationships: []
       }
+      organizations: {
+        Row: {
+          address: string | null
+          branding: Json | null
+          created_at: string
+          email: string | null
+          id: string
+          logo: string | null
+          name: string
+          phone: string | null
+          social_media: Json | null
+          type: string
+          updated_at: string
+          user_id: string
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          branding?: Json | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          logo?: string | null
+          name: string
+          phone?: string | null
+          social_media?: Json | null
+          type: string
+          updated_at?: string
+          user_id: string
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          branding?: Json | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          logo?: string | null
+          name?: string
+          phone?: string | null
+          social_media?: Json | null
+          type?: string
+          updated_at?: string
+          user_id?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -75,6 +123,7 @@ export type Database = {
           downloads: number
           id: string
           name: string
+          organization_id: string | null
           status: Database["public"]["Enums"]["project_status"]
           type: Database["public"]["Enums"]["project_type"]
           updated_at: string
@@ -86,6 +135,7 @@ export type Database = {
           downloads?: number
           id?: string
           name: string
+          organization_id?: string | null
           status?: Database["public"]["Enums"]["project_status"]
           type: Database["public"]["Enums"]["project_type"]
           updated_at?: string
@@ -97,12 +147,21 @@ export type Database = {
           downloads?: number
           id?: string
           name?: string
+          organization_id?: string | null
           status?: Database["public"]["Enums"]["project_status"]
           type?: Database["public"]["Enums"]["project_type"]
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "projects_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       shared_designs: {
         Row: {
@@ -262,6 +321,39 @@ export type Database = {
           updated_at?: string
           user_id?: string
           website?: string | null
+        }
+        Relationships: []
+      }
+      uploaded_images: {
+        Row: {
+          category: string | null
+          created_at: string
+          filename: string
+          id: string
+          size: number | null
+          type: string | null
+          url: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          filename: string
+          id?: string
+          size?: number | null
+          type?: string | null
+          url: string
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          filename?: string
+          id?: string
+          size?: number | null
+          type?: string | null
+          url?: string
+          user_id?: string
         }
         Relationships: []
       }

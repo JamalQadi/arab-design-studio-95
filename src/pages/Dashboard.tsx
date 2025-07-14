@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -63,10 +62,6 @@ const Dashboard = () => {
     }
   };
 
-  const handleProjectCreated = () => {
-    loadDashboardData();
-  };
-
   const handleDeleteProject = async (projectId: string) => {
     if (confirm('هل أنت متأكد من حذف هذا المشروع؟')) {
       const result = await supabaseService.deleteProject(projectId);
@@ -120,7 +115,7 @@ const Dashboard = () => {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">لوحة التحكم</h1>
-            <p className="text-gray-600">مرحباً بك، {user?.user_metadata?.full_name || user?.email}</p>
+            <p className="text-gray-600">مرحباً بك، {user?.name || user?.email}</p>
           </div>
           <div className="flex gap-3">
             <Link to="/agency-profile">
@@ -287,7 +282,6 @@ const Dashboard = () => {
         <CreateProjectModal 
           open={isCreateModalOpen}
           onOpenChange={setIsCreateModalOpen}
-          onProjectCreated={handleProjectCreated}
         />
       </div>
     </div>
