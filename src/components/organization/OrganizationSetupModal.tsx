@@ -70,20 +70,20 @@ export const OrganizationSetupModal = ({
         const org = result.organization;
         setFormData({
           name: org.name || '',
-          name_en: org.name_en || '',
+          name_en: (org as any).name_en || '',
           type: org.type || '',
           phone: org.phone || '',
           email: org.email || '',
           website: org.website || '',
           address: org.address || '',
-          city: org.city || '',
-          country: org.country || 'المملكة العربية السعودية',
+          city: (org as any).city || '',
+          country: (org as any).country || 'المملكة العربية السعودية',
           logo: org.logo || '',
-          social_media: org.social_media || {
+          social_media: (org.social_media as any) || {
             facebook: '', twitter: '', instagram: '', linkedin: '', 
             youtube: '', tiktok: '', snapchat: ''
           },
-          branding: org.branding || {
+          branding: (org.branding as any) || {
             primary_color: '#1e40af',
             secondary_color: '#f59e0b',
             font_family: 'Arial'

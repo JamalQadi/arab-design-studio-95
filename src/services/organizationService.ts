@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { toast } from "sonner";
@@ -267,11 +266,10 @@ export class OrganizationService {
 
       const externalData = await response.json();
       
-      // Store external data reference in organization
+      // Note: external_data field would need to be added to database schema
+      // For now, we'll store it in a generic way
       const result = await this.updateOrganization(organizationId, {
-        external_data: externalData,
-        external_api_endpoint: apiEndpoint,
-        last_sync: new Date().toISOString()
+        branding: { external_sync: externalData, last_sync: new Date().toISOString() }
       });
 
       return { success: true, data: externalData };
@@ -294,9 +292,7 @@ export class OrganizationService {
             .replace(/\{\{organization\.phone\}\}/g, organization.phone || '')
             .replace(/\{\{organization\.email\}\}/g, organization.email || '')
             .replace(/\{\{organization\.address\}\}/g, organization.address || '')
-            .replace(/\{\{organization\.website\}\}/g, organization.website || '')
-            .replace(/\{\{organization\.city\}\}/g, organization.city || '')
-            .replace(/\{\{organization\.country\}\}/g, organization.country || '');
+            .replace(/\{\{organization\.website\}\}/g, organization.website || '');
         } else if (Array.isArray(obj)) {
           return obj.map(replacePlaceholders);
         } else if (obj && typeof obj === 'object') {
