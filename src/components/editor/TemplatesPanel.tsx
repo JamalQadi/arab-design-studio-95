@@ -52,10 +52,11 @@ export const TemplatesPanel = ({
 
   const prebuiltTemplatesList = Object.values(prebuiltTemplates);
   
-  // Filter prebuilt templates by category and search with proper type checking
+  // Filter prebuilt templates by category and search with safe property access
   const filteredPrebuiltTemplates = prebuiltTemplatesList.filter(template => {
     const matchesSearch = template.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const templateCategory = template.category || template.type || 'other';
+    // Safely access category with fallback to type
+    const templateCategory = (template as any).category || template.type || 'other';
     const matchesCategory = selectedCategory === 'all' || template.type === selectedCategory || templateCategory === selectedCategory;
     return matchesSearch && matchesCategory;
   });
