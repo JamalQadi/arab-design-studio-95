@@ -15,6 +15,15 @@ interface Template {
   color: string;
 }
 
+interface PrebuiltTemplateType {
+  name: string;
+  type: string;
+  category?: string;
+  size: { width: number; height: number };
+  background: string;
+  elements: any[];
+}
+
 interface TemplatesPanelProps {
   templates: Template[];
   selectedTemplate: number;
@@ -50,14 +59,16 @@ export const TemplatesPanel = ({
     template.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const prebuiltTemplatesList = Object.values(prebuiltTemplates);
+  const prebuiltTemplatesList = Object.values(prebuiltTemplates) as PrebuiltTemplateType[];
   
-  // Filter prebuilt templates by category and search with safe property access
+  // Filter prebuilt templates by category and search with proper type safety
   const filteredPrebuiltTemplates = prebuiltTemplatesList.filter(template => {
     const matchesSearch = template.name.toLowerCase().includes(searchTerm.toLowerCase());
-    // Safely access category with fallback to type
-    const templateCategory = (template as any).category || template.type || 'other';
-    const matchesCategory = selectedCategory === 'all' || template.type === selectedCategory || templateCategory === selectedCategory;
+    // Use category if available, otherwise use type as fallback
+    const templateCategory = template.category || template.type || 'other';
+    const matchesCategory = selectedCategory === 'all' || 
+                           template.type === selectedCategory || 
+                           templateCategory === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
