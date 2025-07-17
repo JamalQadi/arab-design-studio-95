@@ -266,10 +266,22 @@ export class OrganizationService {
 
       const externalData = await response.json();
       
-      // Note: external_data field would need to be added to database schema
-      // For now, we'll store it in a generic way
+      // Get current organization data first
+      const orgResult = await this.getOrganization(organizationId);
+      if (!orgResult.success || !orgResult.organization) {
+        throw new Error('المؤسسة غير موجودة');
+      }
+
+      const existingBranding = typeof orgResult.organization.branding === 'object' 
+        ? orgResult.organization.branding as any
+        : {};
+      
       const result = await this.updateOrganization(organizationId, {
-        branding: { external_sync: externalData, last_sync: new Date().toISOString() }
+        branding: { 
+          ...existingBranding,
+          external_sync: externalData, 
+          last_sync: new Date().toISOString() 
+        }
       });
 
       return { success: true, data: externalData };
