@@ -42,11 +42,14 @@ export type Database = {
         Row: {
           address: string | null
           branding: Json | null
+          city: string | null
+          country: string | null
           created_at: string
           email: string | null
           id: string
           logo: string | null
           name: string
+          name_en: string | null
           phone: string | null
           social_media: Json | null
           type: string
@@ -57,11 +60,14 @@ export type Database = {
         Insert: {
           address?: string | null
           branding?: Json | null
+          city?: string | null
+          country?: string | null
           created_at?: string
           email?: string | null
           id?: string
           logo?: string | null
           name: string
+          name_en?: string | null
           phone?: string | null
           social_media?: Json | null
           type: string
@@ -72,11 +78,14 @@ export type Database = {
         Update: {
           address?: string | null
           branding?: Json | null
+          city?: string | null
+          country?: string | null
           created_at?: string
           email?: string | null
           id?: string
           logo?: string | null
           name?: string
+          name_en?: string | null
           phone?: string | null
           social_media?: Json | null
           type?: string
